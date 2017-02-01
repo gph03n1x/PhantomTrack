@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Pycharm
+.idea/*
+
+# FFMPEG
+bin/ff*
+
 # C extensions
 *.so
 

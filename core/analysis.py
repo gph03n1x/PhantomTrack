@@ -4,17 +4,12 @@ import os.path
 import subprocess
 from scipy.io.wavfile import read
 import matplotlib.pyplot as plt
-
 from PyQt5.QtCore import QThread
 
 FFMPEG_BIN = "bin/ffmpeg.exe"
 LIBRARY_PATH = "library/"
-MUSIC_PATH = LIBRARY_PATH + "music/"
+MUSIC_PATH = "D:/Music/"
 PLOT_PATH = LIBRARY_PATH + "plots/"
-
-# FIX DAMN TABS
-# CREATE NEW FIGURE FOR EACH PLOT,
-# I WILL USE PLAYLIST INDEX FOR THIS
 
 
 class WavePlt(QThread):
@@ -23,7 +18,6 @@ class WavePlt(QThread):
         self.f = filename
         self.png_name = PLOT_PATH + self.f.replace(".mp3", ".png")
 
-
     def run(self):
         wav_name = self.f.replace(".mp3", ".wav")
 
@@ -31,8 +25,9 @@ class WavePlt(QThread):
         if os.path.isfile(self.full_path):
             print(self.full_path)
             cmd = FFMPEG_BIN+" -i \""+self.full_path+"\" -acodec pcm_u8 -ar 22050 \""+wav_name+"\""
-
+            print(cmd)
             with open(os.devnull, 'w') as shutup:
+
                 return_code = subprocess.check_call(cmd, stdout=shutup, stderr=shutup)
 
             #return_code = subprocess.check_call(cmd)

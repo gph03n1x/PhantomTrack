@@ -3,13 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Pycharm
+# Pycharm idea folder
 .idea/*
 
-# FFMPEG
+# FFMPEG in binary
 bin/ff*
 
-# Library
+# Library Folder
 library/music/*
 library/plots/*
 

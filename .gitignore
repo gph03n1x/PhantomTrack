@@ -9,6 +9,11 @@ __pycache__/
 # FFMPEG
 bin/ff*
 
+# Library
+library/music/*
+library/plots/*
+
+
 # C extensions
 *.so
 

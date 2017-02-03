@@ -1,18 +1,23 @@
- #!/usr/bin/env python
+#!/usr/bin/env python
 import sys
-
+from os import listdir, rename
+from os.path import isfile, join
+# Third party libraries
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QListView,
-        QSlider, QStyle, QToolButton, QVBoxLayout, QWidget)
-
-from os import listdir
-from os.path import isfile, join
+from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QListView, QSlider, QStyle,
+                             QToolButton, QVBoxLayout, QWidget, QTextEdit, QLabel)
+# Core libraries
 from core.analysis import WavePlt
 from core.dialogs import wave_dialog
 from core.playlist import PlaylistModel
+from core.config import fetch_options, add_to_info
 
+import os
+import subprocess
+import re
+import hashlib
 
 FFMPEG_BIN = "bin/ffmpeg.exe"
 LIBRARY_PATH = "library/"
@@ -29,6 +34,7 @@ class MusicPlayer(QWidget):
         self.jumping = False
         self.playback_value = 0
         self.text = ["None", "Repeat", "Random"]
+        self.durations = {}
         self.values = [QMediaPlaylist.Loop, QMediaPlaylist.CurrentItemInLoop, QMediaPlaylist.Random]
 
         self.playButton = QToolButton(clicked=self.play)
@@ -40,8 +46,6 @@ class MusicPlayer(QWidget):
 
         self.playbackButton = QToolButton(clicked=self.playback_mode)
         self.playbackButton.setText(self.text[0])
-
-
 
         self.nextButton = QToolButton(clicked=self.next_song)
         self.nextButton.setIcon(
@@ -58,8 +62,7 @@ class MusicPlayer(QWidget):
         self.waveformButton = QToolButton(clicked=self.get_waveform)
         self.waveformButton.setText("Waveform")
 
-        self.volumeSlider = QSlider(Qt.Horizontal,
-                sliderMoved=self.change_volume)
+        self.volumeSlider = QSlider(Qt.Horizontal, sliderMoved=self.change_volume)
         self.volumeSlider.setRange(0, 100)
         self.volumeSlider.setPageStep(1)
         self.volumeSlider.setValue(50)
@@ -68,19 +71,17 @@ class MusicPlayer(QWidget):
         self.player = QMediaPlayer()
         self.player.setVolume(50)
 
-        self.durationSlider = QSlider(Qt.Horizontal, sliderMoved=lambda pos: self.player.setPosition(pos*1000))
+        self.durationSlider = QSlider(Qt.Horizontal)
+        self.durationSlider.setEnabled(False)
+        # There seems to be a bug with setPosition
+        #self.durationSlider.sliderReleased.connect(lambda : self.player.setPosition(self.durationSlider.value() * 1000))
         self.duration_label = QLabel()
-
-        self.player.durationChanged.connect(self.durationChanged)
-        self.player.positionChanged.connect(self.positionChanged)
+        self.durationSlider.setRange(0, self.player.duration() / 1000.0)
 
         self.playlist = QMediaPlaylist()
         self.playlist.setPlaybackMode(self.values[0])
 
-        for f in listdir(MUSIC_PATH):
-            if isfile(join(MUSIC_PATH, f)):
-                print(join(MUSIC_PATH, f))
-                self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(MUSIC_PATH, f))))
+        self.refresh()
 
         self.playlist.setCurrentIndex(1);
         self.player.setPlaylist(self.playlist)
@@ -93,7 +94,11 @@ class MusicPlayer(QWidget):
         self.playlistView.setCurrentIndex(
                 self.playlistModel.index(self.playlist.currentIndex(), 0))
         self.playlistView.activated.connect(self.jump)
-        self.playlist.currentIndexChanged.connect(lambda pos: self.playlistView.setCurrentIndex(self.playlistModel.index(pos, 0)))
+        self.playlist.currentIndexChanged.connect(lambda pos: self.playlistView.setCurrentIndex(
+            self.playlistModel.index(pos, 0))
+                                                )
+        self.player.durationChanged.connect(self.duration_changed)
+        self.player.positionChanged.connect(self.position_changed)
 
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
@@ -118,10 +123,62 @@ class MusicPlayer(QWidget):
         music_layout.addLayout(duration_layout)
         music_layout.addLayout(control_layout)
 
+        self.links_to_download = QTextEdit()
+        self.download_status = QTextEdit()
+        self.download_status.setReadOnly(True)
+
+        self.download_button = QToolButton(clicked=self.download)
+        self.download_button.setText("Download")
+
+        download_layout = QVBoxLayout()
+        download_layout.addWidget(self.links_to_download)
+        download_layout.addWidget(self.download_status)
+        download_layout.addWidget(self.download_button)
+
         main_layout = QHBoxLayout()
         main_layout.addLayout(music_layout)
+        main_layout.addLayout(download_layout)
 
         self.setLayout(main_layout)
+
+    def download(self):
+        # TODO: use qProcess for this
+        # TODO: empty download list or remove the successful ones
+        # Possibly useful regex: \d{1,}\.\d{1,}%
+        links = self.links_to_download.toPlainText().split('\n')
+        for link in links:
+            cmd = 'youtube-dl --ffmpeg-location \"' + FFMPEG_BIN + '\" --extract-audio --audio-format mp3 --audio-quality 0 '+ link
+            with open(os.devnull, 'w') as shutup:
+                self.download_status.setText(str(subprocess.check_output(cmd)))
+
+        for item in listdir('.'):
+            if isfile(item) and item.endswith(".mp3"):
+                try:
+                    rename(item, MUSIC_PATH+item)
+                except Exception as exc:
+                    print(exc)
+        self.refresh()
+
+    def refresh(self):
+        # Change it so it will go to same song.
+        # TODO: cache this
+        self.durations = {}
+        self.playlist.clear()
+        options = fetch_options("info.cfg")
+        for f in listdir(MUSIC_PATH):
+            if isfile(join(MUSIC_PATH, f))and f.endswith(".mp3"):
+                song_hash = hashlib.sha224(f.encode()).hexdigest()
+                if 'duration' in options and song_hash in options['duration']:
+                    self.durations[f] = float(options['duration'][song_hash])
+                else:
+                    cmd = "\"" + FFMPEG_BIN + "\" -i \"" + join(MUSIC_PATH, f) + "\" -f null pipe:1"
+                    output = str(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stderr.read())
+                    duration_time = re.search("time=[^\s]{0,}", output).group(0).replace("time=", "")
+                    hours, mins, seconds = duration_time.split(":")
+
+                    self.durations[f] = (float(hours)*3600 + float(mins) * 60 + float(seconds))*1000
+                    add_to_info(song_hash, self.durations[f])
+                self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(MUSIC_PATH, f))))
 
     def playback_mode(self):
         # Normal -> Loop -> Random
@@ -135,9 +192,10 @@ class MusicPlayer(QWidget):
         self.playbackButton.setText(self.text[self.playback_value])
 
     def get_waveform(self):
+        # TODO: use qProcess for this
         self.thread = WavePlt()
         self.thread.set_(self.playlistView.selectedIndexes()[0].data())
-        self.thread.finished.connect(lambda : wave_dialog(self.thread.png_name))
+        self.thread.finished.connect(lambda: wave_dialog(self.thread.png_name))
         self.thread.start()
 
     def jump(self, index):
@@ -187,12 +245,22 @@ class MusicPlayer(QWidget):
                 )
             )
 
-    def durationChanged(self, duration):
-        self.duration_label.setText("{0:.2f}/{1:.2f}".format(0, self.player.duration() / 100000))
-        self.durationSlider.setMaximum(duration / 1000)
+    def duration_changed(self, duration):
+        if not self.playlistView.currentIndex().data() in self.durations:
+            return
+        self.duration_label.setText("00:00/{0:02d}:{1:02d}".format(
+            int(self.durations[self.playlistView.currentIndex().data()] / 1000.0) // 60,
+            int(self.durations[self.playlistView.currentIndex().data()] / 1000.0) % 60)
+        )
+        self.durationSlider.setRange(0, self.durations[self.playlistView.currentIndex().data()] / 1000.0)
 
-    def positionChanged(self, position):
-        self.duration_label.setText("{0:.2f}/{1:.2f}".format(position / 100000, self.player.duration() / 100000))
+    def position_changed(self, position):
+        if not self.playlistView.currentIndex().data() in self.durations:
+            return
+        self.duration_label.setText("{0:02d}:{1:02d}/{2:02d}:{3:02d}".format(
+            int(position/1000) // 60, int(position/1000) % 60,
+            int(self.durations[self.playlistView.currentIndex().data()] / 1000.0) // 60,
+            int(self.durations[self.playlistView.currentIndex().data()] / 1000.0) % 60))
         self.durationSlider.setValue(position / 1000)
 
 
@@ -217,6 +285,6 @@ if __name__ == "__main__":
 
     app.setPalette(palette)
     musicplayer = MusicPlayer()
-    musicplayer.setWindowTitle("Data Science Project")
+    musicplayer.setWindowTitle("Phantom Track")
     musicplayer.show()
     sys.exit(app.exec_())

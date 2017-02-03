@@ -46,3 +46,7 @@ class WavePlt(QThread):
 
             plt.savefig(self.png_name, bbox_inches='tight')
             plt.clf()
+
+
+def convert_to_wave():
+    pass

@@ -9,7 +9,7 @@ LIBRARY_PATH = "library/"
 MUSIC_PATH = "D:/Music/"
 PLOT_PATH = LIBRARY_PATH + "plots/"
 
-
+# TODO
 class YoutubeDownloader(QThread):
     def set_(self, links):
         self.links = links

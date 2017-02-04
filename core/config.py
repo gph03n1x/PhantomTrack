@@ -23,6 +23,20 @@ def add_to_info(song, duration):
     with open('info.cfg', 'w') as configfile:
         config.write(configfile)
 
+def update_music_paths(paths):
+    paths = ";".join(paths)
+
+    config = configparser.ConfigParser()
+    config.read('PhantomTrack.cfg')
+
+    if not config.has_section('paths'):
+        config.add_section('paths')
+
+    config.set('paths', 'MUSIC_PATH', paths)
+
+    with open('PhantomTrack.cfg', 'w') as configfile:
+        config.write(configfile)
+
 
 def fetch_options(cfg_file="PhantomTrack.cfg"):
     options = {}

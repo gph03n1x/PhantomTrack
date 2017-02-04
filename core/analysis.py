@@ -34,7 +34,7 @@ class WavePlt(QThread):
 
             plt.ylabel("Amplitude")
             plt.xlabel("Time")
-            plt.title(self.f)
+            # plt.title(self.f)
 
             input_data = read(wav_name)
             audio = input_data[1]

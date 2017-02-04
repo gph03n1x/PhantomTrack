@@ -4,13 +4,13 @@ from os import listdir, rename
 from os.path import isfile, join
 # Third party libraries
 from PyQt5.QtCore import Qt, QUrl, QProcess
-from PyQt5.QtGui import QColor, QPalette
+from PyQt5.QtGui import QColor, QPalette, QIcon
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QListView, QSlider, QStyle, QProgressBar,
-                             QToolButton, QVBoxLayout, QWidget, QTextEdit, QLabel)
+                             QToolButton, QVBoxLayout, QWidget, QTextEdit, QLabel, QMainWindow, QAction)
 # Core libraries
 from core.analysis import WavePlt
-from core.dialogs import wave_dialog
+from core.dialogs import wave_dialog, LibrariesManager
 from core.playlist import PlaylistModel
 from core.config import fetch_options, add_to_info
 
@@ -24,12 +24,35 @@ LIBRARY_PATH = "library/"
 MUSIC_PATH = "D:/Music/"
 PLOT_PATH = LIBRARY_PATH + "plots/"
 
+class MainApplication(QMainWindow):
+    def __init__(self):
+        QApplication.__init__(self)
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&Music')
+        edit_libraries_action = QAction('&Library folders', self)
+        edit_libraries_action.triggered.connect(self.call_libraries_manager)
+        fileMenu.addAction(edit_libraries_action)
+
+        options = fetch_options()
+        print(options['paths'])
+        if len(options['paths']['music_path']) < 1:
+            self.call_libraries_manager()
+
+    def call_libraries_manager(self):
+        self.libraries_manager = LibrariesManager()
+        self.libraries_manager.show()
+
+    def set_up_gui(self, widget):
+        self.setCentralWidget(widget)
+
 
 class MusicPlayer(QWidget):
 
     def __init__(self, parent=None):
 
         QWidget.__init__(self, parent)
+
+        # TODO: set workspaces and library folders
 
         self.jumping = False
         self.playback_value = 0
@@ -158,8 +181,7 @@ class MusicPlayer(QWidget):
             self.download_status.setValue(int(percentage.group(0).replace("%", "").split(".")[0]))
 
     def download(self):
-        # TODO: use qProcess for this
-        # TODO: empty download list or remove the successful ones
+        # TODO: empty download list
         # Possibly useful regex: \d{1,}\.\d{1,}%
         links = self.links_to_download.toPlainText().split('\n')
         cmd = ""
@@ -182,7 +204,6 @@ class MusicPlayer(QWidget):
 
     def refresh(self):
         # Change it so it will go to same song.
-        # TODO: cache this
         self.durations = {}
 
         options = fetch_options("info.cfg")
@@ -312,7 +333,11 @@ if __name__ == "__main__":
     palette.setColor(QPalette.HighlightedText, Qt.black)
 
     app.setPalette(palette)
-    musicplayer = MusicPlayer()
-    musicplayer.setWindowTitle("Phantom Track")
-    musicplayer.show()
+
+    music_player = MusicPlayer()
+
+    main_app = MainApplication()
+    main_app.setWindowTitle("Phantom Track")
+    main_app.set_up_gui(music_player)
+    main_app.show()
     sys.exit(app.exec_())

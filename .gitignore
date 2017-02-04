@@ -13,6 +13,9 @@ bin/ff*
 library/music/*
 library/plots/*
 
+# Info
+info.cfg
+
 
 # C extensions
 *.so

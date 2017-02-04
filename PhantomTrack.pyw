@@ -3,10 +3,10 @@ import sys
 from os import listdir, rename
 from os.path import isfile, join
 # Third party libraries
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtCore import Qt, QUrl, QProcess
 from PyQt5.QtGui import QColor, QPalette
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QListView, QSlider, QStyle,
+from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QListView, QSlider, QStyle, QProgressBar,
                              QToolButton, QVBoxLayout, QWidget, QTextEdit, QLabel)
 # Core libraries
 from core.analysis import WavePlt
@@ -81,7 +81,7 @@ class MusicPlayer(QWidget):
         self.playlist = QMediaPlaylist()
         self.playlist.setPlaybackMode(self.values[0])
 
-        self.refresh()
+
 
         self.playlist.setCurrentIndex(1);
         self.player.setPlaylist(self.playlist)
@@ -99,6 +99,8 @@ class MusicPlayer(QWidget):
                                                 )
         self.player.durationChanged.connect(self.duration_changed)
         self.player.positionChanged.connect(self.position_changed)
+
+        self.refresh()
 
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
@@ -124,11 +126,19 @@ class MusicPlayer(QWidget):
         music_layout.addLayout(control_layout)
 
         self.links_to_download = QTextEdit()
-        self.download_status = QTextEdit()
-        self.download_status.setReadOnly(True)
+        self.download_status = QProgressBar()
 
         self.download_button = QToolButton(clicked=self.download)
         self.download_button.setText("Download")
+
+        self.process = QProcess(self)
+        # QProcess emits `readyRead` when there is data to be read
+        self.process.readyRead.connect(self.data_ready)
+
+        # Just to prevent accidentally running multiple times
+        # Disable the button when process starts, and enable it when it finishes
+        self.process.started.connect(lambda: self.download_button.setEnabled(False))
+        self.process.finished.connect(self.move_files)
 
         download_layout = QVBoxLayout()
         download_layout.addWidget(self.links_to_download)
@@ -141,44 +151,62 @@ class MusicPlayer(QWidget):
 
         self.setLayout(main_layout)
 
+    def data_ready(self):
+        data = str(self.process.readAll())
+        percentage = re.search("\d{1,}\.\d{1,}%", data)
+        if percentage:
+            self.download_status.setValue(int(percentage.group(0).replace("%", "").split(".")[0]))
+
     def download(self):
         # TODO: use qProcess for this
         # TODO: empty download list or remove the successful ones
         # Possibly useful regex: \d{1,}\.\d{1,}%
         links = self.links_to_download.toPlainText().split('\n')
+        cmd = ""
         for link in links:
-            cmd = 'youtube-dl --ffmpeg-location \"' + FFMPEG_BIN + '\" --extract-audio --audio-format mp3 --audio-quality 0 '+ link
-            with open(os.devnull, 'w') as shutup:
-                self.download_status.setText(str(subprocess.check_output(cmd)))
+            cmd += 'youtube-dl --ffmpeg-location \"' + FFMPEG_BIN + '\" --extract-audio --audio-format mp3 --audio-quality 0 '+ link + ";"
+            #with open(os.devnull, 'w') as shutup:
+            #    self.download_status.setText(str(subprocess.check_output(cmd)))
+        self.process.start(cmd)
 
+    def move_files(self):
         for item in listdir('.'):
             if isfile(item) and item.endswith(".mp3"):
                 try:
                     rename(item, MUSIC_PATH+item)
                 except Exception as exc:
                     print(exc)
+
         self.refresh()
+        self.download_button.setEnabled(True)
 
     def refresh(self):
         # Change it so it will go to same song.
         # TODO: cache this
         self.durations = {}
-        self.playlist.clear()
+
         options = fetch_options("info.cfg")
+        current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
+                     for row in range(self.playlistModel.rowCount()) ]
+
         for f in listdir(MUSIC_PATH):
-            if isfile(join(MUSIC_PATH, f))and f.endswith(".mp3"):
+            if isfile(join(MUSIC_PATH, f))and f.endswith(".mp3") and (f not in current_songs):
                 song_hash = hashlib.sha224(f.encode()).hexdigest()
                 if 'duration' in options and song_hash in options['duration']:
                     self.durations[f] = float(options['duration'][song_hash])
                 else:
                     cmd = "\"" + FFMPEG_BIN + "\" -i \"" + join(MUSIC_PATH, f) + "\" -f null pipe:1"
                     output = str(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stderr.read())
-                    duration_time = re.search("time=[^\s]{0,}", output).group(0).replace("time=", "")
+                    duration_time = re.search("Duration:\s[^\s]{0,}", output).group(0).replace("Duration: ", "")[:-1]
+
                     hours, mins, seconds = duration_time.split(":")
 
                     self.durations[f] = (float(hours)*3600 + float(mins) * 60 + float(seconds))*1000
                     add_to_info(song_hash, self.durations[f])
+
                 self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(MUSIC_PATH, f))))
+
+
 
     def playback_mode(self):
         # Normal -> Loop -> Random

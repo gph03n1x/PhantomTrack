@@ -17,7 +17,6 @@ def add_to_info(song, duration):
     config.read('info.cfg')
 
     if not config.has_section('duration'):
-        print("doesn't have")
         config.add_section('duration')
 
     config.set('duration', song, str(duration))

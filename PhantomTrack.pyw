@@ -95,9 +95,9 @@ class MusicPlayer(QWidget):
         self.player.setVolume(50)
 
         self.durationSlider = QSlider(Qt.Horizontal)
-        self.durationSlider.setEnabled(False)
+        #self.durationSlider.setEnabled(False)
         # There seems to be a bug with setPosition
-        #self.durationSlider.sliderReleased.connect(lambda : self.player.setPosition(self.durationSlider.value() * 1000))
+        #self.durationSlider.sliderReleased.connect(self.seek)
         self.duration_label = QLabel()
         self.durationSlider.setRange(0, self.player.duration() / 1000.0)
 
@@ -153,6 +153,8 @@ class MusicPlayer(QWidget):
 
         self.download_button = QToolButton(clicked=self.download)
         self.download_button.setText("Download")
+        self.download_status_label = QLabel()
+        # TODO: add the label in the layout
 
         self.process = QProcess(self)
         # QProcess emits `readyRead` when there is data to be read
@@ -163,16 +165,25 @@ class MusicPlayer(QWidget):
         self.process.started.connect(lambda: self.download_button.setEnabled(False))
         self.process.finished.connect(self.move_files)
 
+        download_controls = QHBoxLayout()
+        download_controls.addWidget(self.download_button)
+        download_controls.addWidget(self.download_status_label)
+
         download_layout = QVBoxLayout()
         download_layout.addWidget(self.links_to_download)
         download_layout.addWidget(self.download_status)
-        download_layout.addWidget(self.download_button)
+        download_layout.addLayout(download_controls)
 
         main_layout = QHBoxLayout()
         main_layout.addLayout(music_layout)
         main_layout.addLayout(download_layout)
 
         self.setLayout(main_layout)
+
+    def seek(self):
+        print(self.durationSlider.value())
+        self.player.setPosition(self.durationSlider.value()*1000*self.player.duration()/self.durations[self.playlistView.currentIndex().data()])
+        self.position_changed(self.player.position())
 
     def data_ready(self):
         data = str(self.process.readAll())
@@ -181,25 +192,30 @@ class MusicPlayer(QWidget):
             self.download_status.setValue(int(percentage.group(0).replace("%", "").split(".")[0]))
 
     def download(self):
-        # TODO: empty download list
         # Possibly useful regex: \d{1,}\.\d{1,}%
+        self.download_status_label.setText("Downloading ...")
         links = self.links_to_download.toPlainText().split('\n')
         cmd = ""
         for link in links:
             cmd += 'youtube-dl --ffmpeg-location \"' + FFMPEG_BIN + '\" --extract-audio --audio-format mp3 --audio-quality 0 '+ link + ";"
             #with open(os.devnull, 'w') as shutup:
             #    self.download_status.setText(str(subprocess.check_output(cmd)))
+        self.links_to_download.clear()
         self.process.start(cmd)
 
+
     def move_files(self):
+        self.download_status_label.setText("Moving to music folder...")
+        default_path = fetch_options("PhantomTrack.cfg")['paths']['music_path'].split(';')[0]+"/"
         for item in listdir('.'):
             if isfile(item) and item.endswith(".mp3"):
                 try:
-                    rename(item, MUSIC_PATH+item)
+                    rename(item, default_path+item)
                 except Exception as exc:
                     print(exc)
 
         self.refresh()
+        self.download_status_label.setText("")
         self.download_button.setEnabled(True)
 
     def refresh(self):
@@ -207,25 +223,26 @@ class MusicPlayer(QWidget):
         self.durations = {}
 
         options = fetch_options("info.cfg")
+        paths = fetch_options("PhantomTrack.cfg")['paths']['music_path'].split(';')
         current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
                      for row in range(self.playlistModel.rowCount()) ]
+        for path in paths:
+            for item in listdir(path):
+                if isfile(join(path, item))and item.endswith(".mp3") and (item not in current_songs):
+                    song_hash = hashlib.sha224(item.encode()).hexdigest()
+                    if 'duration' in options and song_hash in options['duration']:
+                        self.durations[item] = float(options['duration'][song_hash])
+                    else:
+                        cmd = "\"" + FFMPEG_BIN + "\" -i \"" + join(path, item) + "\" -f null pipe:1"
+                        output = str(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stderr.read())
+                        duration_time = re.search("Duration:\s[^\s]{0,}", output).group(0).replace("Duration: ", "")[:-1]
 
-        for f in listdir(MUSIC_PATH):
-            if isfile(join(MUSIC_PATH, f))and f.endswith(".mp3") and (f not in current_songs):
-                song_hash = hashlib.sha224(f.encode()).hexdigest()
-                if 'duration' in options and song_hash in options['duration']:
-                    self.durations[f] = float(options['duration'][song_hash])
-                else:
-                    cmd = "\"" + FFMPEG_BIN + "\" -i \"" + join(MUSIC_PATH, f) + "\" -f null pipe:1"
-                    output = str(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stderr.read())
-                    duration_time = re.search("Duration:\s[^\s]{0,}", output).group(0).replace("Duration: ", "")[:-1]
+                        hours, mins, seconds = duration_time.split(":")
 
-                    hours, mins, seconds = duration_time.split(":")
+                        self.durations[item] = (float(hours)*3600 + float(mins) * 60 + float(seconds))*1000
+                        add_to_info(song_hash, self.durations[item])
 
-                    self.durations[f] = (float(hours)*3600 + float(mins) * 60 + float(seconds))*1000
-                    add_to_info(song_hash, self.durations[f])
-
-                self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(MUSIC_PATH, f))))
+                    self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(path, item))))
 
 
 

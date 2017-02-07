@@ -52,12 +52,11 @@ class MusicPlayer(QWidget):
 
         QWidget.__init__(self, parent)
 
-        # TODO: set workspaces and library folders
 
         self.jumping = False
+        self.durations = {}
         self.playback_value = 0
         self.text = ["None", "Repeat", "Random"]
-        self.durations = {}
         self.values = [QMediaPlaylist.Loop, QMediaPlaylist.CurrentItemInLoop, QMediaPlaylist.Random]
 
         self.playButton = QToolButton(clicked=self.play)
@@ -123,7 +122,8 @@ class MusicPlayer(QWidget):
         self.player.durationChanged.connect(self.duration_changed)
         self.player.positionChanged.connect(self.position_changed)
 
-        self.refresh()
+        self.refresh_bar = QProgressBar()
+        self.refresh_bar.hide()
 
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
@@ -147,6 +147,7 @@ class MusicPlayer(QWidget):
         music_layout.addLayout(display_layout)
         music_layout.addLayout(duration_layout)
         music_layout.addLayout(control_layout)
+        music_layout.addWidget(self.refresh_bar)
 
         self.links_to_download = QTextEdit()
         self.download_status = QProgressBar()
@@ -157,13 +158,20 @@ class MusicPlayer(QWidget):
         # TODO: add the label in the layout
 
         self.process = QProcess(self)
+
         # QProcess emits `readyRead` when there is data to be read
         self.process.readyRead.connect(self.data_ready)
+
 
         # Just to prevent accidentally running multiple times
         # Disable the button when process starts, and enable it when it finishes
         self.process.started.connect(lambda: self.download_button.setEnabled(False))
         self.process.finished.connect(self.move_files)
+
+        self.duration_process = QProcess(self)
+        self.duration_process.finished.connect(self.read_duration)
+
+
 
         download_controls = QHBoxLayout()
         download_controls.addWidget(self.download_button)
@@ -174,9 +182,13 @@ class MusicPlayer(QWidget):
         download_layout.addWidget(self.download_status)
         download_layout.addLayout(download_controls)
 
+
+
         main_layout = QHBoxLayout()
         main_layout.addLayout(music_layout)
         main_layout.addLayout(download_layout)
+
+        self.refresh()
 
         self.setLayout(main_layout)
 
@@ -226,6 +238,8 @@ class MusicPlayer(QWidget):
         paths = fetch_options("PhantomTrack.cfg")['paths']['music_path'].split(';')
         current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
                      for row in range(self.playlistModel.rowCount()) ]
+
+        self.songs_not_in_list = []
         for path in paths:
             for item in listdir(path):
                 if isfile(join(path, item))and item.endswith(".mp3") and (item not in current_songs):
@@ -233,17 +247,36 @@ class MusicPlayer(QWidget):
                     if 'duration' in options and song_hash in options['duration']:
                         self.durations[item] = float(options['duration'][song_hash])
                     else:
-                        cmd = "\"" + FFMPEG_BIN + "\" -i \"" + join(path, item) + "\" -f null pipe:1"
-                        output = str(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE).stderr.read())
-                        duration_time = re.search("Duration:\s[^\s]{0,}", output).group(0).replace("Duration: ", "")[:-1]
-
-                        hours, mins, seconds = duration_time.split(":")
-
-                        self.durations[item] = (float(hours)*3600 + float(mins) * 60 + float(seconds))*1000
-                        add_to_info(song_hash, self.durations[item])
+                        self.songs_not_in_list.append((join(path, item), item, song_hash))
 
                     self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(path, item))))
 
+        self.songs_not_in_list_count = 0
+        self.refresh_bar.setMaximum(len(self.songs_not_in_list))
+        self.refresh_bar.setValue(0)
+        self.refresh_bar.show()
+        self.duration_next()
+
+    def duration_next(self):
+        if self.songs_not_in_list_count < len(self.songs_not_in_list):
+            path, self.item, self.song_hash = self.songs_not_in_list[self.songs_not_in_list_count]
+            cmd = "\"" + FFMPEG_BIN + "\" -i \"" + path + "\" -f null pipe:1"
+            print(cmd)
+            self.duration_process.start(cmd)
+        else:
+            self.refresh_bar.hide()
+
+
+    def read_duration(self):
+        output = str(self.duration_process.readAllStandardError())
+
+        duration_time = re.search("Duration:\s[^\s]{0,}", output).group(0).replace("Duration: ", "")[:-1]
+        hours, mins, seconds = duration_time.split(":")
+        self.durations[self.item] = (float(hours) * 3600 + float(mins) * 60 + float(seconds)) * 1000
+        add_to_info(self.song_hash, self.durations[self.item])
+        self.songs_not_in_list_count += 1
+        self.refresh_bar.setValue(self.refresh_bar.value()+1)
+        self.duration_next()
 
 
     def playback_mode(self):

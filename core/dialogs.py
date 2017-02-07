@@ -1,7 +1,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QHBoxLayout, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget, \
-    QLabel, QDialog, QFileDialog)
+    QLabel, QDialog, QFileDialog, QProgressBar)
 
 from core.config import fetch_options, update_music_paths
 

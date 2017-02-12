@@ -19,10 +19,8 @@ import subprocess
 import re
 import hashlib
 
-FFMPEG_BIN = "bin/ffmpeg.exe"
-LIBRARY_PATH = "library/"
-MUSIC_PATH = "D:/Music/"
-PLOT_PATH = LIBRARY_PATH + "plots/"
+options = fetch_options()
+FFMPEG_BIN = options['paths']['ffmpeg_bin']
 
 class MainApplication(QMainWindow):
     def __init__(self):
@@ -125,6 +123,8 @@ class MusicPlayer(QWidget):
         self.refresh_bar = QProgressBar()
         self.refresh_bar.hide()
 
+        # TODO tidy up this mess
+
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
         control_layout.addWidget(self.stopButton)
@@ -155,13 +155,11 @@ class MusicPlayer(QWidget):
         self.download_button = QToolButton(clicked=self.download)
         self.download_button.setText("Download")
         self.download_status_label = QLabel()
-        # TODO: add the label in the layout
 
         self.process = QProcess(self)
 
         # QProcess emits `readyRead` when there is data to be read
         self.process.readyRead.connect(self.data_ready)
-
 
         # Just to prevent accidentally running multiple times
         # Disable the button when process starts, and enable it when it finishes
@@ -171,8 +169,6 @@ class MusicPlayer(QWidget):
         self.duration_process = QProcess(self)
         self.duration_process.finished.connect(self.read_duration)
 
-
-
         download_controls = QHBoxLayout()
         download_controls.addWidget(self.download_button)
         download_controls.addWidget(self.download_status_label)
@@ -181,8 +177,6 @@ class MusicPlayer(QWidget):
         download_layout.addWidget(self.links_to_download)
         download_layout.addWidget(self.download_status)
         download_layout.addLayout(download_controls)
-
-
 
         main_layout = QHBoxLayout()
         main_layout.addLayout(music_layout)
@@ -291,11 +285,8 @@ class MusicPlayer(QWidget):
         self.playbackButton.setText(self.text[self.playback_value])
 
     def get_waveform(self):
-        # TODO: use qProcess for this
-        self.thread = WavePlt()
-        self.thread.set_(self.playlistView.selectedIndexes()[0].data())
-        self.thread.finished.connect(lambda: wave_dialog(self.thread.png_name))
-        self.thread.start()
+        self.thread = WavePlt(self.playlistView.selectedIndexes()[0].data())
+        self.thread.begin()
 
     def jump(self, index):
         if index.isValid():

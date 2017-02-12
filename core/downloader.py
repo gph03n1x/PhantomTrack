@@ -4,10 +4,12 @@ import os.path
 import subprocess
 from PyQt5.QtCore import QThread
 
-FFMPEG_BIN = "bin/ffmpeg.exe"
-LIBRARY_PATH = "library/"
-MUSIC_PATH = "D:/Music/"
-PLOT_PATH = LIBRARY_PATH + "plots/"
+from core.config import fetch_options, get_default_path
+
+options = fetch_options()
+FFMPEG_BIN = options['paths']['ffmpeg_bin']
+PLOT_PATH = options['paths']['plot_path']
+MUSIC_PATH = get_default_path()
 
 # TODO
 class YoutubeDownloader(QThread):

@@ -23,6 +23,11 @@ def add_to_info(song, duration):
     with open('info.cfg', 'w') as configfile:
         config.write(configfile)
 
+
+def get_default_path():
+    return fetch_options()['paths']['music_path'].split(';')[0] + '/'
+
+
 def update_music_paths(paths):
     paths = ";".join(paths)
 

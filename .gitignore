@@ -6,16 +6,15 @@ __pycache__/
 # Pycharm idea folder
 .idea/*
 
-# FFMPEG in binary
-bin/ff*
-
 # Library Folder
 library/music/*
 library/plots/*
 
-# Info
+# Info configure about songs.
 info.cfg
 
+# mp3 files
+*.mp3
 
 # C extensions
 *.so

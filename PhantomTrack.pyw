@@ -10,12 +10,11 @@ from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QListView, QSlider, QSty
                              QToolButton, QVBoxLayout, QWidget, QTextEdit, QLabel, QMainWindow, QAction)
 # Core libraries
 from core.analysis import WavePlt
-from core.dialogs import wave_dialog, LibrariesManager
+from core.dialogs import LibrariesManager
 from core.playlist import PlaylistModel
+from core.downloader import YoutubeDownloader
 from core.config import fetch_options, add_to_info
 
-import os
-import subprocess
 import re
 import hashlib
 
@@ -94,7 +93,7 @@ class MusicPlayer(QWidget):
         self.durationSlider = QSlider(Qt.Horizontal)
         #self.durationSlider.setEnabled(False)
         # There seems to be a bug with setPosition
-        #self.durationSlider.sliderReleased.connect(self.seek)
+        self.durationSlider.sliderReleased.connect(self.seek)
         self.duration_label = QLabel()
         self.durationSlider.setRange(0, self.player.duration() / 1000.0)
 
@@ -156,15 +155,6 @@ class MusicPlayer(QWidget):
         self.download_button.setText("Download")
         self.download_status_label = QLabel()
 
-        self.process = QProcess(self)
-
-        # QProcess emits `readyRead` when there is data to be read
-        self.process.readyRead.connect(self.data_ready)
-
-        # Just to prevent accidentally running multiple times
-        # Disable the button when process starts, and enable it when it finishes
-        self.process.started.connect(lambda: self.download_button.setEnabled(False))
-        self.process.finished.connect(self.move_files)
 
         self.duration_process = QProcess(self)
         self.duration_process.finished.connect(self.read_duration)
@@ -187,42 +177,22 @@ class MusicPlayer(QWidget):
         self.setLayout(main_layout)
 
     def seek(self):
-        print(self.durationSlider.value())
-        self.player.setPosition(self.durationSlider.value()*1000*self.player.duration()/self.durations[self.playlistView.currentIndex().data()])
-        self.position_changed(self.player.position())
+        pass
+        #self.player.setPosition(self.durationSlider.value()*1000)
+        #self.position_changed(self.player.position()*self.durations[self.playlistView.currentIndex().data()]/self.player.duration())
 
-    def data_ready(self):
-        data = str(self.process.readAll())
-        percentage = re.search("\d{1,}\.\d{1,}%", data)
-        if percentage:
-            self.download_status.setValue(int(percentage.group(0).replace("%", "").split(".")[0]))
 
     def download(self):
-        # Possibly useful regex: \d{1,}\.\d{1,}%
-        self.download_status_label.setText("Downloading ...")
-        links = self.links_to_download.toPlainText().split('\n')
-        cmd = ""
-        for link in links:
-            cmd += 'youtube-dl --ffmpeg-location \"' + FFMPEG_BIN + '\" --extract-audio --audio-format mp3 --audio-quality 0 '+ link + ";"
-            #with open(os.devnull, 'w') as shutup:
-            #    self.download_status.setText(str(subprocess.check_output(cmd)))
+        yt = YoutubeDownloader(self.links_to_download.toPlainText().split(','),
+                               self.download_status_label,
+                               self.download_button,
+                               self.download_status,
+                               self.refresh
+                               )
+        yt.begin()
         self.links_to_download.clear()
-        self.process.start(cmd)
 
 
-    def move_files(self):
-        self.download_status_label.setText("Moving to music folder...")
-        default_path = fetch_options("PhantomTrack.cfg")['paths']['music_path'].split(';')[0]+"/"
-        for item in listdir('.'):
-            if isfile(item) and item.endswith(".mp3"):
-                try:
-                    rename(item, default_path+item)
-                except Exception as exc:
-                    print(exc)
-
-        self.refresh()
-        self.download_status_label.setText("")
-        self.download_button.setEnabled(True)
 
     def refresh(self):
         # Change it so it will go to same song.
@@ -347,6 +317,8 @@ class MusicPlayer(QWidget):
     def position_changed(self, position):
         if not self.playlistView.currentIndex().data() in self.durations:
             return
+
+        #position_2 = position / self.durations[self.playlistView.currentIndex().data()]
         self.duration_label.setText("{0:02d}:{1:02d}/{2:02d}:{3:02d}".format(
             int(position/1000) // 60, int(position/1000) % 60,
             int(self.durations[self.playlistView.currentIndex().data()] / 1000.0) // 60,

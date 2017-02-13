@@ -49,13 +49,12 @@ class YoutubeDownloader:
 
     def update_progress(self):
         data = str(self.process.readAll())
-        percentage = re.search("\d{1,}\.\d{1,}%", data)
+        percentage = re.search("\d+\.\d+%", data)
         if percentage:
             self.progress.setValue(int(percentage.group(0).replace("%", "").split(".")[0]))
 
     def begin(self):
         self.download()
-
 
     def download(self):
         link = self.links.pop()

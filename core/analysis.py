@@ -15,10 +15,11 @@ PLOT_PATH = options['paths']['plot_path']
 MUSIC_PATH = get_default_path()
 
 
-class WavePlt:
-    def __init__(self, filename):
+class WavePlot:
+    def __init__(self, filename, dialog=True):
         self.full_path = MUSIC_PATH + filename
         self.f = filename
+        self.dialog = dialog
         self.png_name = PLOT_PATH + self.f.replace(".mp3", ".png")
         self.convert_process = QProcess()
         self.convert_process.finished.connect(self.plot)
@@ -38,14 +39,13 @@ class WavePlt:
         plt.savefig(self.png_name, bbox_inches='tight')
         plt.clf()
 
-        wave_dialog(self.png_name)
+        if self.dialog:
+            wave_dialog(self.png_name)
 
     def convert(self):
         self.wav_name = self.f.replace(".mp3", ".wav")
-
         if os.path.isfile(self.full_path):
             cmd = FFMPEG_BIN+" -i \""+self.full_path+"\" -acodec pcm_u8 -ar 22050 \""+self.wav_name+"\""
-
             self.convert_process.start(cmd)
 
     def begin(self):

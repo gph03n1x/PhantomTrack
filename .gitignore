@@ -7,8 +7,9 @@ __pycache__/
 .idea/*
 
 # Library Folder
-library/music/*
-library/plots/*
+library/plots/*.png
+
+Testing/*
 
 # Info configure about songs.
 info.cfg

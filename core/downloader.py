@@ -5,12 +5,13 @@ import os.path
 
 from PyQt5.QtCore import QProcess
 
-from core.config import fetch_options, get_default_path
+from core.config import fetch_options, get_default_path, parse_command
 
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']
 PLOT_PATH = options['paths']['plot_path']
 MUSIC_PATH = get_default_path()
+YOUTUBE_CMD = options['commands']['download']
 
 
 class YoutubeDownloader:
@@ -25,6 +26,9 @@ class YoutubeDownloader:
         self.process.readyRead.connect(self.update_progress)
         self.process.started.connect(lambda: self.button.setEnabled(False))
         self.process.finished.connect(self.download_complete)
+
+        self.download_input = {'ffmpeg': FFMPEG_BIN}
+
 
     def download_complete(self):
         if len(self.links) > 0:
@@ -59,5 +63,11 @@ class YoutubeDownloader:
     def download(self):
         link = self.links.pop()
         self.label.setText("Downloading " + link)
+        self.download_input['link'] = link
+        cmd_2= parse_command(YOUTUBE_CMD, self.download_input)
+        #
+        # print(YOUTUBE_CMD)
         cmd = 'youtube-dl --ffmpeg-location \"' + FFMPEG_BIN + '\" --extract-audio --audio-format mp3 ' + link
-        self.process.start(cmd)
+
+
+        self.process.start(cmd_2)

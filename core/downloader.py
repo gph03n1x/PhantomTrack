@@ -12,6 +12,7 @@ FFMPEG_BIN = options['paths']['ffmpeg_bin']
 PLOT_PATH = options['paths']['plot_path']
 MUSIC_PATH = get_default_path()
 YOUTUBE_CMD = options['commands']['download']
+THUMBNAILS = options['paths']['thumbnails']
 
 
 class YoutubeDownloader:
@@ -45,6 +46,11 @@ class YoutubeDownloader:
                     os.rename(item, default_path + item)
                 except Exception as exc:
                     print(exc)
+            if os.path.isfile(item) and item.endswith(".jpg"):
+                try:
+                    os.rename(item, THUMBNAILS + item)
+                except Exception as exc:
+                    print(exc)
 
         self.refresh_method()
 
@@ -64,10 +70,5 @@ class YoutubeDownloader:
         link = self.links.pop()
         self.label.setText("Downloading " + link)
         self.download_input['link'] = link
-        cmd_2= parse_command(YOUTUBE_CMD, self.download_input)
-        #
-        # print(YOUTUBE_CMD)
-        cmd = 'youtube-dl --ffmpeg-location \"' + FFMPEG_BIN + '\" --extract-audio --audio-format mp3 ' + link
-
-
-        self.process.start(cmd_2)
+        cmd = parse_command(YOUTUBE_CMD, self.download_input)
+        self.process.start(cmd)

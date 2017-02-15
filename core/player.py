@@ -2,20 +2,26 @@
 import re
 import hashlib
 from os import listdir
-from os.path import isfile, join
+from os.path import isfile, join, exists
 # Third party libraries
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt, QUrl, QProcess
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
 from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QProgressBar,
                              QToolButton, QVBoxLayout, QWidget, QTextEdit, QLabel)
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+from scipy.misc import imread
 # Core libraries
-from core.analysis import WavePlot
+from core.analysis import WavePlot, WaveAnimator
 from core.playlist import PlaylistModel
 from core.downloader import YoutubeDownloader
 from core.config import fetch_options, add_to_info
 
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']
+THUMBNAILS = options['paths']['thumbnails']
 
 
 class MusicPlayer(QWidget):
@@ -27,6 +33,16 @@ class MusicPlayer(QWidget):
         self.playback_value = 0
         self.text = ["None", "Repeat", "Random"]
         self.values = [QMediaPlaylist.Loop, QMediaPlaylist.CurrentItemInLoop, QMediaPlaylist.Random]
+
+        # Thumbnail widget
+        self.image_label = QLabel()
+        # TODO: animate waveforms
+
+        self.figure = plt.figure()
+        # this is the Canvas Widget that displays the `figure`
+        # it takes the `figure` instance as a parameter to __init__
+        self.canvas = FigureCanvas(self.figure)
+        #self.figure.axis('off')
 
 
         # Control widgets
@@ -66,6 +82,7 @@ class MusicPlayer(QWidget):
         self.player = QMediaPlayer()
         self.player.setVolume(50)
 
+
         self.playlist = QMediaPlaylist()
         self.playlist.setPlaybackMode(self.values[0])
         self.playlist.setCurrentIndex(1)
@@ -83,9 +100,13 @@ class MusicPlayer(QWidget):
             self.playlistModel.index(self.playlist.currentIndex(), 0))
         self.playlistView.activated.connect(self.jump)
 
+        # TODO: Use playlist currentIndexChanged
+        self.player.mediaChanged.connect(self.change_thumbnail)
+
         self.playlist.currentIndexChanged.connect(
             lambda pos: self.playlistView.setCurrentIndex(self.playlistModel.index(pos, 0))
         )
+
 
         # Duration widgets
 
@@ -150,6 +171,8 @@ class MusicPlayer(QWidget):
 
         main_layout = QHBoxLayout()
         main_layout.addLayout(music_layout)
+        main_layout.addWidget(self.image_label)
+        #main_layout.addWidget(self.canvas)
         main_layout.addLayout(download_layout)
 
         self.refresh()
@@ -161,6 +184,20 @@ class MusicPlayer(QWidget):
                                self.download_status, self.refresh)
         yt.begin()
         self.links_to_download.clear()
+
+    def change_thumbnail(self, media=None):
+        print("called")
+        """self.wa = WaveAnimator(self.playlistView.currentIndex().data(), self.durations[self.playlistView.currentIndex().data()] / 1000.0,
+                               self.figure, self.canvas)
+        self.wa.start()"""
+
+        image_path = THUMBNAILS + self.playlistView.currentIndex().data().replace('.mp3', '.jpg')
+        #print(image_path)
+
+        #TODO: set width height
+        if exists(image_path):
+            p = QPixmap(image_path)
+            self.image_label.setPixmap(p.scaled(120, 90, Qt.KeepAspectRatio))
 
     def refresh(self):
         # Change it so it will go to same song.
@@ -190,6 +227,7 @@ class MusicPlayer(QWidget):
 
     def duration_next(self):
         if len(self.songs_not_in_list) > 0:
+            #TODO: use the parse_command
             path, self.item, self.song_hash = self.songs_not_in_list.pop()
             cmd = "\"" + FFMPEG_BIN + "\" -i \"" + path + "\" -f null pipe:1"
             print(cmd)
@@ -224,11 +262,13 @@ class MusicPlayer(QWidget):
         self.wave_plot.begin()
 
     def jump(self, index):
+
         if index.isValid():
             # Fix that here :)
             self.playlist.setCurrentIndex(index.row())
             self.jumping = True
             self.play()
+        self.change_thumbnail()
 
     def play(self):
         if self.player.state() != QMediaPlayer.PlayingState or self.jumping:

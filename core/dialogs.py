@@ -40,7 +40,7 @@ class LibrariesManager(QWidget):
         save_paths = QToolButton(clicked=self.done_library)
         save_paths.setText("Done")
 
-        # LOAD here
+        # TODO: default directory
 
         self.items = 0
         self.libraries.setRowCount(self.items)

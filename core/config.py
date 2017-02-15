@@ -6,6 +6,7 @@ import configparser
 def parse_command(command, keys):
     return command.format(**keys)
 
+
 def get_commit_hash():
     master_file = open(".git/refs/heads/master", "r")
     version = master_file.read().strip()

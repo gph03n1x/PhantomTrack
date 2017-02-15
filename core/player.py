@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import re
+import random
 import hashlib
 from os import listdir
 from os.path import isfile, join, exists
@@ -22,7 +23,8 @@ from core.config import fetch_options, add_to_info
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']
 THUMBNAILS = options['paths']['thumbnails']
-
+THUMB_WIDTH = options['thumbnail']['width']
+THUMB_HEIGHT = options['thumbnail']['height']
 
 class MusicPlayer(QWidget):
     def __init__(self, parent=None):
@@ -100,13 +102,9 @@ class MusicPlayer(QWidget):
             self.playlistModel.index(self.playlist.currentIndex(), 0))
         self.playlistView.activated.connect(self.jump)
 
-        # TODO: Use playlist currentIndexChanged
-        self.player.mediaChanged.connect(self.change_thumbnail)
-
         self.playlist.currentIndexChanged.connect(
-            lambda pos: self.playlistView.setCurrentIndex(self.playlistModel.index(pos, 0))
+            lambda position: self.change_thumbnail(position)
         )
-
 
         # Duration widgets
 
@@ -154,7 +152,8 @@ class MusicPlayer(QWidget):
         display_layout.addWidget(self.playlistView)
 
         music_layout = QVBoxLayout()
-        music_layout.addLayout(display_layout)
+        music_layout.addWidget(self.image_label)
+
         # Disabled duration layout since it is so buggy.
         #music_layout.addLayout(duration_layout)
         music_layout.addLayout(control_layout)
@@ -171,11 +170,15 @@ class MusicPlayer(QWidget):
 
         main_layout = QHBoxLayout()
         main_layout.addLayout(music_layout)
-        main_layout.addWidget(self.image_label)
+        main_layout.addLayout(display_layout)
+
         #main_layout.addWidget(self.canvas)
         main_layout.addLayout(download_layout)
 
         self.refresh()
+        img = random.choice([item for item in listdir(THUMBNAILS) if item.endswith('.jpg')])
+        p = QPixmap(THUMBNAILS + img)
+        self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
         self.setLayout(main_layout)
 
     def download(self):
@@ -185,19 +188,21 @@ class MusicPlayer(QWidget):
         yt.begin()
         self.links_to_download.clear()
 
-    def change_thumbnail(self, media=None):
+    def change_thumbnail(self, position):
         print("called")
         """self.wa = WaveAnimator(self.playlistView.currentIndex().data(), self.durations[self.playlistView.currentIndex().data()] / 1000.0,
                                self.figure, self.canvas)
         self.wa.start()"""
+        self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
 
         image_path = THUMBNAILS + self.playlistView.currentIndex().data().replace('.mp3', '.jpg')
-        #print(image_path)
-
-        #TODO: set width height
         if exists(image_path):
             p = QPixmap(image_path)
-            self.image_label.setPixmap(p.scaled(120, 90, Qt.KeepAspectRatio))
+            self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
+        else:
+            img = random.choice([item for item in listdir(THUMBNAILS) if item.endswith('.jpg')])
+            p = QPixmap(THUMBNAILS + img)
+            self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
 
     def refresh(self):
         # Change it so it will go to same song.
@@ -268,7 +273,6 @@ class MusicPlayer(QWidget):
             self.playlist.setCurrentIndex(index.row())
             self.jumping = True
             self.play()
-        self.change_thumbnail()
 
     def play(self):
         if self.player.state() != QMediaPlayer.PlayingState or self.jumping:

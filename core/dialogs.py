@@ -40,8 +40,6 @@ class LibrariesManager(QWidget):
         save_paths = QToolButton(clicked=self.done_library)
         save_paths.setText("Done")
 
-        # TODO: default directory
-
         self.items = 0
         self.libraries.setRowCount(self.items)
         self.libraries.setColumnCount(1)

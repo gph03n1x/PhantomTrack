@@ -35,7 +35,8 @@ class WavePlot:
 
         plt.plot(audio[::22050])
 
-        #os.remove(self.wav_name)
+        # TODO: keep wave files mode.
+        os.remove(self.wav_name)
 
         plt.savefig(self.png_name, bbox_inches='tight')
         plt.clf()

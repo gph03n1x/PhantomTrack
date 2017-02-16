@@ -17,13 +17,13 @@ def get_commit_hash():
 def add_to_info(song, duration):
     # TODO: Improve this
     config = configparser.ConfigParser()
-    config.read('info.cfg')
+    config.read('data/info.cfg')
 
     if not config.has_section('duration'):
         config.add_section('duration')
 
     config.set('duration', song, str(duration))
-    with open('info.cfg', 'w') as configfile:
+    with open('data/info.cfg', 'w') as configfile:
         config.write(configfile)
 
 

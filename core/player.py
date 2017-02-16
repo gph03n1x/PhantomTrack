@@ -18,10 +18,11 @@ from scipy.misc import imread
 from core.analysis import WavePlot, WaveAnimator
 from core.playlist import PlaylistModel
 from core.downloader import YoutubeDownloader
-from core.config import fetch_options, add_to_info
+from core.config import fetch_options, add_to_info, parse_command
 
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']
+DURATION_CMD = options['commands']['duration']
 THUMBNAILS = options['paths']['thumbnails']
 THUMB_WIDTH = options['thumbnail']['width']
 THUMB_HEIGHT = options['thumbnail']['height']
@@ -207,8 +208,8 @@ class MusicPlayer(QWidget):
     def refresh(self):
         # Change it so it will go to same song.
         self.durations = {}
-
-        options = fetch_options("info.cfg")
+        # TODO: move it to data/
+        options = fetch_options("data/info.cfg")
         paths = fetch_options("PhantomTrack.cfg")['paths']['music_path'].split(';')
         current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
                      for row in range(self.playlistModel.rowCount()) ]
@@ -232,10 +233,9 @@ class MusicPlayer(QWidget):
 
     def duration_next(self):
         if len(self.songs_not_in_list) > 0:
-            #TODO: use the parse_command
             path, self.item, self.song_hash = self.songs_not_in_list.pop()
-            cmd = "\"" + FFMPEG_BIN + "\" -i \"" + path + "\" -f null pipe:1"
-            print(cmd)
+            command_input = {'ffmpeg': FFMPEG_BIN, 'song':path}
+            cmd = parse_command(DURATION_CMD, command_input)
             self.duration_process.start(cmd)
         else:
             self.refresh_bar.hide()

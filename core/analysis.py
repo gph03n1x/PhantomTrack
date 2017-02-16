@@ -6,12 +6,13 @@ from scipy.io.wavfile import read
 import matplotlib.pyplot as plt
 from PyQt5.QtCore import QProcess, QThread
 
-from core.config import fetch_options, get_default_path
+from core.config import fetch_options, get_default_path, parse_command
 from core.dialogs import wave_dialog
 
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']
 PLOT_PATH = options['paths']['plot_path']
+WAVE_CMD = options['commands']['wave_conversion']
 MUSIC_PATH = get_default_path()
 
 
@@ -47,8 +48,8 @@ class WavePlot:
     def convert(self):
         self.wav_name = self.f.replace(".mp3", ".wav")
         if os.path.isfile(self.full_path):
-            # TODO: use parse_command
-            cmd = FFMPEG_BIN+" -i \""+self.full_path+"\" -acodec pcm_u8 -ar 22050 \""+self.wav_name+"\""
+            command_input = {'ffmpeg': FFMPEG_BIN, 'song': self.full_path, 'wave':self.wav_name}
+            cmd = parse_command(WAVE_CMD, command_input)
             self.convert_process.start(cmd)
 
     def begin(self):

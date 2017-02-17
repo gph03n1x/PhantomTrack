@@ -75,7 +75,6 @@ class MusicPlayer(QWidget):
         self.volumeSlider.setRange(0, 100)
         self.volumeSlider.setPageStep(1)
         self.volumeSlider.setValue(50)
-        self.unmute_value = 50
 
         self.waveformButton = QToolButton(clicked=self.get_waveform)
         self.waveformButton.setText("Waveform")
@@ -120,15 +119,6 @@ class MusicPlayer(QWidget):
         self.refresh_bar = QProgressBar()
         self.refresh_bar.hide()
 
-        # Download panel
-
-        self.links_to_download = QTextEdit()
-        self.download_status = QProgressBar()
-
-        self.download_button = QToolButton(clicked=self.download)
-        self.download_button.setText("Download")
-        self.download_label = QLabel()
-
         self.duration_process = QProcess(self)
         self.duration_process.finished.connect(self.read_duration)
 
@@ -160,21 +150,10 @@ class MusicPlayer(QWidget):
         music_layout.addLayout(control_layout)
         music_layout.addWidget(self.refresh_bar)
 
-        download_controls = QHBoxLayout()
-        download_controls.addWidget(self.download_button)
-        download_controls.addWidget(self.download_label)
-
-        download_layout = QVBoxLayout()
-        download_layout.addWidget(self.links_to_download)
-        download_layout.addWidget(self.download_status)
-        download_layout.addLayout(download_controls)
-
         main_layout = QHBoxLayout()
         main_layout.addLayout(music_layout)
         main_layout.addLayout(display_layout)
-
         #main_layout.addWidget(self.canvas)
-        main_layout.addLayout(download_layout)
 
         self.refresh()
         img = random.choice([item for item in listdir(THUMBNAILS) if item.endswith('.jpg')])
@@ -267,9 +246,7 @@ class MusicPlayer(QWidget):
         self.wave_plot.begin()
 
     def jump(self, index):
-
         if index.isValid():
-            # Fix that here :)
             self.playlist.setCurrentIndex(index.row())
             self.jumping = True
             self.play()
@@ -287,7 +264,6 @@ class MusicPlayer(QWidget):
 
     def change_volume(self, value):
         self.player.setVolume(value)
-        self.unmute_value = value
 
     def stop(self):
         if self.player.state() != QMediaPlayer.StoppedState:

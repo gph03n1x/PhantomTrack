@@ -1,9 +1,11 @@
+#!/usr/bin/env python
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (QHBoxLayout, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget, \
-    QLabel, QDialog, QFileDialog, QProgressBar)
+from PyQt5.QtWidgets import (QHBoxLayout, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget,
+    QLabel, QDialog, QFileDialog, QProgressBar, QTextEdit)
 
 from core.config import fetch_options, update_music_paths
+from core.downloader import YoutubeDownloader
 
 
 def wave_dialog(png_name):
@@ -19,6 +21,44 @@ def wave_dialog(png_name):
     waveform.setPixmap(image)
     waveform.show()
     Dialog.exec_()
+
+
+class DownloadManager(QWidget):
+    def __init__(self, parent=None):
+
+        QWidget.__init__(self, parent)
+        self.setObjectName("Download Manager")
+        self.setWindowTitle("Download Manager")
+        self.setWindowModified(True)
+
+        self.links_to_download = QTextEdit()
+        self.download_status = QProgressBar()
+
+        self.download_button = QToolButton(clicked=self.download)
+        self.download_button.setText("Download")
+        self.download_label = QLabel()
+
+        download_controls = QHBoxLayout()
+        download_controls.addWidget(self.download_button)
+        download_controls.addWidget(self.download_label)
+
+        download_layout = QVBoxLayout()
+        download_layout.addWidget(self.links_to_download)
+        download_layout.addWidget(self.download_status)
+        download_layout.addLayout(download_controls)
+
+        self.setLayout(download_layout)
+
+    def set_refresh(self, refresh):
+        self.refresh = refresh
+
+    def download(self):
+        yt = YoutubeDownloader(self.links_to_download.toPlainText().split(','),
+                               self.download_label, self.download_button,
+                               self.download_status, self.refresh)
+        yt.begin()
+        self.links_to_download.clear()
+
 
 
 class LibrariesManager(QWidget):

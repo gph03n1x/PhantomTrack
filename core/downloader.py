@@ -39,7 +39,7 @@ class YoutubeDownloader:
 
     def move_files(self):
         self.label.setText("Moving to music folder...")
-        default_path = fetch_options("PhantomTrack.cfg")['paths']['music_path'].split(';')[0] + "/"
+        default_path = fetch_options()['paths']['music_path'].split(';')[0] + "/"
         for item in os.listdir('.'):
             if os.path.isfile(item) and item.endswith(".mp3"):
                 try:

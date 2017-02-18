@@ -7,12 +7,14 @@ __pycache__/
 .idea/*
 
 # Library Folder
-library/plots/*.png
+data/plots/*.png
+data/thumbnails/*.jpg
 
+# My Testing folder
 Testing/*
 
-# Info configure about songs.
-info.cfg
+# PhantomTrack configure.
+pt.cfg
 
 # mp3 files
 *.mp3

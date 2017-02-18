@@ -73,6 +73,7 @@ class LibrariesManager(QWidget):
         #self.setWindowModality(Qt.WA_WindowModified)
         self.libraries = QTableWidget()
 
+
         add_paths = QToolButton(clicked=self.add_library)
         add_paths.setText("Add")
         remove_paths = QToolButton(clicked=self.remove_library)
@@ -101,6 +102,10 @@ class LibrariesManager(QWidget):
         main_l.addLayout(controls_l)
         self.setLayout(main_l)
 
+    def set_app_associations(self, app, widget):
+        self.app = app
+        self.widget = widget
+
     def add_to_table(self, path):
         self.libraries.setRowCount(self.items + 1)
         self.libraries.setItem(self.items, 0, QTableWidgetItem(path))
@@ -120,4 +125,7 @@ class LibrariesManager(QWidget):
     def done_library(self):
         paths = [self.libraries.model().index(path, 0).data() for path in range(self.libraries.rowCount())]
         update_music_paths(paths)
+        self.widget.refresh()
+        self.widget.change_thumbnail(0)
+        self.app.show()
         self.close()

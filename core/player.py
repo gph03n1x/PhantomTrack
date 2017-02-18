@@ -6,26 +6,25 @@ from os import listdir
 from os.path import isfile, join, exists
 # Third party libraries
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt, QUrl, QProcess
+from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
-from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QProgressBar,
-                             QToolButton, QVBoxLayout, QWidget, QTextEdit, QLabel)
+from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle,
+                             QToolButton, QVBoxLayout, QWidget, QLabel)
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
-from scipy.misc import imread
 # Core libraries
-from core.analysis import WavePlot, WaveAnimator
+from core.analysis import WavePlot
 from core.playlist import PlaylistModel
 from core.downloader import YoutubeDownloader
-from core.config import fetch_options, add_to_info, parse_command
+from core.config import fetch_options
 
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']
-DURATION_CMD = options['commands']['duration']
 THUMBNAILS = options['paths']['thumbnails']
 THUMB_WIDTH = options['thumbnail']['width']
 THUMB_HEIGHT = options['thumbnail']['height']
+
 
 class MusicPlayer(QWidget):
     def __init__(self, parent=None):
@@ -39,7 +38,6 @@ class MusicPlayer(QWidget):
 
         # Thumbnail widget
         self.image_label = QLabel()
-        # TODO: animate waveforms
 
         self.figure = plt.figure()
         # this is the Canvas Widget that displays the `figure`
@@ -90,8 +88,6 @@ class MusicPlayer(QWidget):
         self.playlist.setCurrentIndex(1)
 
         self.player.setPlaylist(self.playlist)
-        self.player.durationChanged.connect(self.duration_changed)
-        self.player.positionChanged.connect(self.position_changed)
 
         self.playlistModel = PlaylistModel()
         self.playlistModel.setPlaylist(self.playlist)
@@ -106,22 +102,6 @@ class MusicPlayer(QWidget):
             lambda position: self.change_thumbnail(position)
         )
 
-        # Duration widgets
-
-        self.durationSlider = QSlider(Qt.Horizontal)
-        self.durationSlider.sliderReleased.connect(self.seek)
-
-        self.duration_label = QLabel()
-        self.durationSlider.setRange(0, self.player.duration() / 1000.0)
-
-        # Refresh widgets
-
-        self.refresh_bar = QProgressBar()
-        self.refresh_bar.hide()
-
-        self.duration_process = QProcess(self)
-        self.duration_process.finished.connect(self.read_duration)
-
         # Layouts setup
 
         control_layout = QHBoxLayout()
@@ -135,30 +115,18 @@ class MusicPlayer(QWidget):
         control_layout.addWidget(self.playbackButton)
         control_layout.addWidget(self.waveformButton)
 
-        duration_layout = QHBoxLayout()
-        duration_layout.addWidget(self.durationSlider)
-        duration_layout.addWidget(self.duration_label)
-
         display_layout = QHBoxLayout()
         display_layout.addWidget(self.playlistView)
 
         music_layout = QVBoxLayout()
         music_layout.addWidget(self.image_label)
-
-        # Disabled duration layout since it is so buggy.
-        #music_layout.addLayout(duration_layout)
         music_layout.addLayout(control_layout)
-        music_layout.addWidget(self.refresh_bar)
 
         main_layout = QHBoxLayout()
         main_layout.addLayout(music_layout)
         main_layout.addLayout(display_layout)
         #main_layout.addWidget(self.canvas)
 
-        self.refresh()
-        img = random.choice([item for item in listdir(THUMBNAILS) if item.endswith('.jpg')])
-        p = QPixmap(THUMBNAILS + img)
-        self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
         self.setLayout(main_layout)
 
     def download(self):
@@ -169,66 +137,31 @@ class MusicPlayer(QWidget):
         self.links_to_download.clear()
 
     def change_thumbnail(self, position):
-        print("called")
-        """self.wa = WaveAnimator(self.playlistView.currentIndex().data(), self.durations[self.playlistView.currentIndex().data()] / 1000.0,
-                               self.figure, self.canvas)
-        self.wa.start()"""
         self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
 
         image_path = THUMBNAILS + self.playlistView.currentIndex().data().replace('.mp3', '.jpg')
         if exists(image_path):
             p = QPixmap(image_path)
             self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
+
         else:
-            img = random.choice([item for item in listdir(THUMBNAILS) if item.endswith('.jpg')])
-            p = QPixmap(THUMBNAILS + img)
-            self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
+            choices = [item for item in listdir(THUMBNAILS) if item.endswith('.jpg')]
+            if choices:
+                img = random.choice(choices)
+                p = QPixmap(THUMBNAILS + img)
+                self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
 
     def refresh(self):
         # Change it so it will go to same song.
-        self.durations = {}
-        # TODO: move it to data/
-        options = fetch_options("data/info.cfg")
-        paths = fetch_options("PhantomTrack.cfg")['paths']['music_path'].split(';')
+        paths = fetch_options()['paths']['music_path'].split(';')
+
         current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
                      for row in range(self.playlistModel.rowCount()) ]
 
-        self.songs_not_in_list = []
         for path in paths:
             for item in listdir(path):
                 if isfile(join(path, item))and item.endswith(".mp3") and (item not in current_songs):
-                    song_hash = hashlib.sha224(item.encode()).hexdigest()
-                    if 'duration' in options and song_hash in options['duration']:
-                        self.durations[item] = float(options['duration'][song_hash])
-                    else:
-                        self.songs_not_in_list.append((join(path, item), item, song_hash))
-
                     self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(path, item))))
-
-        self.refresh_bar.setMaximum(len(self.songs_not_in_list))
-        self.refresh_bar.setValue(0)
-        self.refresh_bar.show()
-        self.duration_next()
-
-    def duration_next(self):
-        if len(self.songs_not_in_list) > 0:
-            path, self.item, self.song_hash = self.songs_not_in_list.pop()
-            command_input = {'ffmpeg': FFMPEG_BIN, 'song':path}
-            cmd = parse_command(DURATION_CMD, command_input)
-            self.duration_process.start(cmd)
-        else:
-            self.refresh_bar.hide()
-
-
-    def read_duration(self):
-        output = str(self.duration_process.readAllStandardError())
-
-        duration_time = re.search("Duration:\s[^\s]{0,}", output).group(0).replace("Duration: ", "")[:-1]
-        hours, mins, seconds = duration_time.split(":")
-        self.durations[self.item] = (float(hours) * 3600 + float(mins) * 60 + float(seconds)) * 1000
-        add_to_info(self.song_hash, self.durations[self.item])
-        self.refresh_bar.setValue(self.refresh_bar.value()+1)
-        self.duration_next()
 
     def playback_mode(self):
         # Normal -> Loop -> Random
@@ -289,26 +222,3 @@ class MusicPlayer(QWidget):
                 else QStyle.SP_MediaVolumeMuted
                 )
             )
-
-    def duration_changed(self, duration):
-        if not self.playlistView.currentIndex().data() in self.durations:
-            return
-        self.duration_label.setText("00:00/{0:02d}:{1:02d}".format(
-            int(self.durations[self.playlistView.currentIndex().data()] / 1000.0) // 60,
-            int(self.durations[self.playlistView.currentIndex().data()] / 1000.0) % 60)
-        )
-        self.durationSlider.setRange(0, self.durations[self.playlistView.currentIndex().data()] / 1000.0)
-
-    def position_changed(self, position):
-        if not self.playlistView.currentIndex().data() in self.durations:
-            return
-
-        self.duration_label.setText("{0:02d}:{1:02d}/{2:02d}:{3:02d}".format(
-            int(position/1000) // 60, int(position/1000) % 60,
-            int(self.durations[self.playlistView.currentIndex().data()] / 1000.0) // 60,
-            int(self.durations[self.playlistView.currentIndex().data()] / 1000.0) % 60))
-        self.durationSlider.setValue(position / 1000)
-
-    def seek(self):
-        #self.player.setPosition(self.durationSlider.value()*1000)
-        pass

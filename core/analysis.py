@@ -6,7 +6,7 @@ from scipy.io.wavfile import read
 import matplotlib.pyplot as plt
 from PyQt5.QtCore import QProcess, QThread
 
-from core.config import fetch_options, get_default_path, parse_command
+from core.config import fetch_options, get_default_path, parse_command, find_path
 from core.dialogs import wave_dialog
 
 options = fetch_options()
@@ -46,8 +46,7 @@ class WavePlot:
 
 class WaveConverter:
     def __init__(self, filename, on_finish):
-        # TODO: this wont work if the song is not in default folder
-        self.full_path = MUSIC_PATH + filename
+        self.full_path = find_path(filename)
         self.wav_name = filename.replace(".mp3", ".wav")
         self.png_name = PLOT_PATH + filename.replace(".mp3", ".png")
         self.convert_process = QProcess()

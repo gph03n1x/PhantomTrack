@@ -29,6 +29,15 @@ def get_default_path():
     return fetch_options()['paths']['music_path'].split(';')[0] + '/'
 
 
+def find_path(filename):
+    paths = fetch_options()['paths']['music_path'].split(';')
+    for path in paths:
+        full_path = path+"/"+filename
+        if os.path.exists(full_path):
+            return full_path
+    raise IOError("File was removed or doesn't exist")
+
+
 def update_music_paths(paths):
     paths = ";".join(paths)
 

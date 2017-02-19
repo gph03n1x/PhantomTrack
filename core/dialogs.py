@@ -29,7 +29,6 @@ class DownloadManager(QWidget):
         QWidget.__init__(self, parent)
         self.setObjectName("Download Manager")
         self.setWindowTitle("Download Manager")
-        self.setWindowModified(True)
 
         self.links_to_download = QTextEdit()
         self.download_status = QProgressBar()
@@ -69,7 +68,7 @@ class LibrariesManager(QWidget):
 
         self.setObjectName("Music Libraries")
         self.setWindowTitle("Music Libraries")
-        self.setWindowModified(True)
+
         #self.setWindowModality(Qt.WA_WindowModified)
         self.libraries = QTableWidget()
 
@@ -126,6 +125,7 @@ class LibrariesManager(QWidget):
         paths = [self.libraries.model().index(path, 0).data() for path in range(self.libraries.rowCount())]
         update_music_paths(paths)
         self.widget.refresh()
-        self.widget.change_thumbnail(0)
         self.app.show()
+        self.widget.change_thumbnail()
+
         self.close()

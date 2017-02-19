@@ -136,20 +136,25 @@ class MusicPlayer(QWidget):
         yt.begin()
         self.links_to_download.clear()
 
-    def change_thumbnail(self, position):
-        self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
+    def change_thumbnail(self, position=None):
+        if position is not None:
+            self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
 
-        image_path = THUMBNAILS + self.playlistView.currentIndex().data().replace('.mp3', '.jpg')
-        if exists(image_path):
-            p = QPixmap(image_path)
-            self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
-
+        try:
+            image_path = THUMBNAILS + self.playlistView.currentIndex().data().replace('.mp3', '.jpg')
+        except AttributeError:
+            pass
         else:
-            choices = [item for item in listdir(THUMBNAILS) if item.endswith('.jpg')]
-            if choices:
-                img = random.choice(choices)
-                p = QPixmap(THUMBNAILS + img)
+            if exists(image_path):
+                p = QPixmap(image_path)
                 self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
+                return
+
+        choices = [item for item in listdir(THUMBNAILS) if item.endswith('.jpg')]
+        if choices:
+            img = random.choice(choices)
+            p = QPixmap(THUMBNAILS + img)
+            self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
 
     def refresh(self):
         # Change it so it will go to same song.

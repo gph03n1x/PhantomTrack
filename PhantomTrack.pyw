@@ -13,6 +13,11 @@ from core.player import MusicPlayer
 
 class MainApplication(QMainWindow):
     def __init__(self):
+        """
+        Initializes the main window with the Music libraries manager
+        and the download manager in the menu bar. If there are no music
+        paths defined it hides itself.
+        """
         QApplication.__init__(self)
 
         self.do_not_refresh = False
@@ -34,6 +39,11 @@ class MainApplication(QMainWindow):
             self.hide()
 
     def begin(self):
+        """
+        Checks the music paths and there none defined it
+        calls the Music libraries manager
+        :return:
+        """
         options = fetch_options()
         print(options['paths'])
 
@@ -44,6 +54,13 @@ class MainApplication(QMainWindow):
 
 
     def set_up_gui(self, widget):
+        """
+        Sets the player widget as the main widget of the application
+        and if the user had music libraries defined already then
+        refreshes (initializes) the playlist
+        :param widget:
+        :return:
+        """
         self.widget = widget
         self.setCentralWidget(widget)
         if not self.do_not_refresh:
@@ -51,19 +68,26 @@ class MainApplication(QMainWindow):
             self.widget.change_thumbnail(0)
 
     def call_download_manager(self):
+        """
+        Shows a download manager window
+        :return:
+        """
         self.download_manager = DownloadManager()
         self.download_manager.set_refresh(self.widget.refresh)
         self.download_manager.show()
 
     def call_libraries_manager(self):
-        # TODO: show app only when music path is defined.
+        """
+        Shows a music libraries manager window
+        :return:
+        """
         self.libraries_manager = LibrariesManager()
         self.libraries_manager.set_app_associations(self, self.widget)
         self.libraries_manager.show()
 
 
-
 if __name__ == "__main__":
+    # TODO: comment the code.
 
     app = QApplication(sys.argv)
     app.setStyle('Fusion')

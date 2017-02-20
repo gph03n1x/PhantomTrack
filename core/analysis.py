@@ -39,7 +39,6 @@ class WavePlot:
         if self.dialog:
             wave_dialog(png_name)
 
-
     def begin(self):
         self.converter.convert()
 

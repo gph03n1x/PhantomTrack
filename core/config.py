@@ -6,6 +6,11 @@ import os.path
 
 
 def rename_config():
+    """
+    Creates a pt.cfg if there isn't one by renaming
+    the pt.example.cfg.
+    :return:
+    """
     if not os.path.exists('pt.cfg'):
         try:
             os.rename('pt.example.cfg', 'pt.cfg')
@@ -13,12 +18,23 @@ def rename_config():
             print("[-] You are missing your pt.cfg and the app couldn't find pt.example.cfg to substitute it.")
 
 
-
 def parse_command(command, keys):
+    """
+    Parses the arguments from a dictionary in a command.
+    :param command:
+    "{ffmpeg}" -i "{song}" -acodec pcm_u8 -ar 22050 "{wave}"
+    :param keys:
+    {'ffmpeg': "path/ffmpeg.exe", 'song': "1234.mp3", 'wave': "1234.wav"}
+    :return:
+    "path/ffmpeg.exe" -i "1234.mp3" -acodec pcm_u8 -ar 22050 "1234.wav"
+    """
     return command.format(**keys)
 
 
 def get_commit_hash():
+    """
+    Gets current commit's hash from .git/refs/heads/master
+    """
     master_file = open(".git/refs/heads/master", "r")
     version = master_file.read().strip()
     master_file.close()
@@ -26,6 +42,10 @@ def get_commit_hash():
 
 
 def get_default_path():
+    """
+    Returns the first path defined in music_path as default path.
+    :return:
+    """
     return fetch_options()['paths']['music_path'].split(';')[0] + '/'
 
 

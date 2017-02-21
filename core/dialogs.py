@@ -9,6 +9,11 @@ from core.downloader import YoutubeDownloader
 
 
 def wave_dialog(png_name):
+    """
+    Creates a dialog with an image label
+    :param png_name:
+    :return:
+    """
     image = QPixmap(png_name)
 
     Dialog = QDialog()

@@ -50,6 +50,11 @@ def get_default_path():
 
 
 def find_path(filename):
+    """
+    retrieves a song path
+    :param filename:
+    :return:
+    """
     paths = fetch_options()['paths']['music_path'].split(';')
     for path in paths:
         full_path = path+"/"+filename
@@ -59,6 +64,11 @@ def find_path(filename):
 
 
 def update_music_paths(paths):
+    """
+    joins the paths with ';', updates the music_path
+    :param paths:
+    :return:
+    """
     paths = ";".join(paths)
 
     config = configparser.ConfigParser()
@@ -74,6 +84,11 @@ def update_music_paths(paths):
 
 
 def fetch_options(cfg_file="pt.cfg"):
+    """
+    Creates a dictionary with the configure options.
+    :param cfg_file:
+    :return:
+    """
     rename_config()
     options = {}
     config = configparser.RawConfigParser()

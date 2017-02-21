@@ -23,6 +23,12 @@ class WavePlot:
         self.converter = WaveConverter(filename, self.plot)
 
     def plot(self, wav_name, png_name):
+        """
+        Creates the plot of the wave file and saves it as an image.
+        :param wav_name:
+        :param png_name:
+        :return:
+        """
         plt.ylabel("Amplitude")
         plt.xlabel("Time")
         input_data = read(wav_name)
@@ -44,6 +50,7 @@ class WavePlot:
 
 
 class WaveConverter:
+
     def __init__(self, filename, on_finish):
         self.full_path = find_path(filename)
         self.wav_name = filename.replace(".mp3", ".wav")
@@ -53,6 +60,9 @@ class WaveConverter:
 
 
     def convert(self):
+        """
+        Calls the wave converions command.
+        """
         if os.path.isfile(self.full_path):
             command_input = {'ffmpeg': FFMPEG_BIN, 'song': self.full_path, 'wave':self.wav_name}
             cmd = parse_command(WAVE_CMD, command_input)

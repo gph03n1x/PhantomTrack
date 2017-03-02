@@ -56,6 +56,7 @@ class YoutubeDownloader:
 
         self.label.setText("")
         self.button.setEnabled(True)
+        self.progress.hide()
 
     def update_progress(self):
         data = str(self.process.readAll())

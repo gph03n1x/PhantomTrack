@@ -2,7 +2,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QHBoxLayout, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget,
-    QLabel, QDialog, QFileDialog, QProgressBar, QTextEdit)
+    QLabel, QDialog, QFileDialog, QProgressBar, QLineEdit)
 
 from core.config import fetch_options, update_music_paths
 from core.downloader import YoutubeDownloader
@@ -35,29 +35,59 @@ class DownloadManager(QWidget):
         self.setObjectName("Download Manager")
         self.setWindowTitle("Download Manager")
 
-        self.links_to_download = QTextEdit()
+        self.libraries = QTableWidget()
+        self.items = 0
+        self.libraries.setRowCount(self.items)
+        self.libraries.setColumnCount(1)
+        self.libraries.horizontalHeader().setStretchLastSection(True)
+        self.libraries.horizontalHeader().hide()
+
+        self.links_to_download = QLineEdit()
+        self.links_to_download.textChanged.connect(self.add_to_table)
         self.download_status = QProgressBar()
+        self.download_status.hide()
+
 
         self.download_button = QToolButton(clicked=self.download)
         self.download_button.setText("Download")
+        self.remove_button = QToolButton(clicked=self.remove_from_table)
+        self.remove_button.setText("Remove")
         self.download_label = QLabel()
 
         download_controls = QHBoxLayout()
         download_controls.addWidget(self.download_button)
+        download_controls.addWidget(self.remove_button)
         download_controls.addWidget(self.download_label)
 
         download_layout = QVBoxLayout()
+        download_layout.addWidget(self.libraries)
         download_layout.addWidget(self.links_to_download)
         download_layout.addWidget(self.download_status)
         download_layout.addLayout(download_controls)
 
         self.setLayout(download_layout)
 
+    def add_to_table(self):
+        if self.links_to_download.text():
+            print(self.links_to_download.text())
+            self.libraries.setRowCount(self.items + 1)
+            self.libraries.setItem(self.items, 0, QTableWidgetItem(self.links_to_download.text()))
+            self.items += 1
+            self.links_to_download.clear()
+
+
+    def remove_from_table(self):
+        self.items -= len(self.libraries.selectedIndexes())
+        for index in sorted(self.libraries.selectedIndexes())[::-1]:
+            self.libraries.removeRow(index.row())
+
     def set_refresh(self, refresh):
         self.refresh = refresh
 
     def download(self):
-        yt = YoutubeDownloader(self.links_to_download.toPlainText().split(','),
+        self.download_status.show()
+        download_links = [self.libraries.model().index(path, 0).data() for path in range(self.libraries.rowCount())]
+        yt = YoutubeDownloader(download_links,
                                self.download_label, self.download_button,
                                self.download_status, self.refresh)
         yt.begin()
@@ -95,6 +125,7 @@ class LibrariesManager(QWidget):
             if len(path) > 1:
                 self.add_to_table(path)
 
+
         controls_l = QHBoxLayout()
         controls_l.setAlignment(Qt.AlignLeft)
         controls_l.addWidget(add_paths)
@@ -123,8 +154,10 @@ class LibrariesManager(QWidget):
         self.items += 1
 
     def remove_library(self):
+        self.items -= len(self.libraries.selectedIndexes())
         for index in sorted(self.libraries.selectedIndexes())[::-1]:
             self.libraries.removeRow(index.row())
+
 
     def done_library(self):
         paths = [self.libraries.model().index(path, 0).data() for path in range(self.libraries.rowCount())]

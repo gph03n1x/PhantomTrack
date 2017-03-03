@@ -16,12 +16,12 @@ THUMBNAILS = options['paths']['thumbnails']
 
 
 class YoutubeDownloader:
-    def __init__(self, links, label, button, progress, refresh_method):
+    def __init__(self, links, label, button, progress, done_method):
         self.links = links
         self.label = label
         self.button = button
         self.progress = progress
-        self.refresh_method = refresh_method
+        self.done_method = done_method
 
         self.process = QProcess()
         self.process.readyRead.connect(self.update_progress)
@@ -52,8 +52,8 @@ class YoutubeDownloader:
                 except Exception as exc:
                     print(exc)
 
-        self.refresh_method()
-
+        self.done_method()
+        #TODO: move these inside done method
         self.label.setText("")
         self.button.setEnabled(True)
         self.progress.hide()

@@ -44,9 +44,9 @@ class DownloadManager(QWidget):
 
         self.links_to_download = QLineEdit()
         self.links_to_download.textChanged.connect(self.add_to_table)
+
         self.download_status = QProgressBar()
         self.download_status.hide()
-
 
         self.download_button = QToolButton(clicked=self.download)
         self.download_button.setText("Download")
@@ -86,12 +86,21 @@ class DownloadManager(QWidget):
 
     def download(self):
         self.download_status.show()
+        self.links_to_download.hide()
         download_links = [self.libraries.model().index(path, 0).data() for path in range(self.libraries.rowCount())]
         yt = YoutubeDownloader(download_links,
                                self.download_label, self.download_button,
-                               self.download_status, self.refresh)
+                               self.download_status, self.done)
         yt.begin()
         self.links_to_download.clear()
+        self.libraries.clear()
+        self.items = 0
+        self.libraries.setRowCount(self.items)
+
+    def done(self):
+        self.links_to_download.show()
+        self.refresh()
+
 
 
 

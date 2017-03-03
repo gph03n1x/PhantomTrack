@@ -75,6 +75,7 @@ class MainApplication(QMainWindow):
         self.download_manager = DownloadManager()
         self.download_manager.set_refresh(self.widget.refresh)
         self.download_manager.show()
+        self.download_manager.links_to_download.setFocus()
 
     def call_libraries_manager(self):
         """

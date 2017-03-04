@@ -85,12 +85,11 @@ class DownloadManager(QWidget):
         self.refresh = refresh
 
     def download(self):
+        self.download_button.setEnabled(False)
         self.download_status.show()
         self.links_to_download.hide()
         download_links = [self.libraries.model().index(path, 0).data() for path in range(self.libraries.rowCount())]
-        yt = YoutubeDownloader(download_links,
-                               self.download_label, self.download_button,
-                               self.download_status, self.done)
+        yt = YoutubeDownloader(download_links, self.download_label, self.download_button, self.download_status, self.done)
         yt.begin()
         self.links_to_download.clear()
         self.libraries.clear()
@@ -98,6 +97,9 @@ class DownloadManager(QWidget):
         self.libraries.setRowCount(self.items)
 
     def done(self):
+        self.download_label.setText("")
+        self.download_button.setEnabled(True)
+        self.download_status.hide()
         self.links_to_download.show()
         self.refresh()
 

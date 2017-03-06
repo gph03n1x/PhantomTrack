@@ -5,10 +5,10 @@ import hashlib
 from os import listdir
 from os.path import isfile, join, exists
 # Third party libraries
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QKeySequence
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
-from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QLineEdit, QAction,
+from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QLineEdit, QShortcut,
                              QToolButton, QVBoxLayout, QWidget, QLabel)
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -103,10 +103,10 @@ class MusicPlayer(QWidget):
 
         song_search = QLineEdit()
         song_search.textChanged.connect(self.search)
+        song_search.setClearButtonEnabled(True)
 
-        #clear_song_search = QAction(self.style().standardIcon(QStyle.SP_BrowserStop), "", song_search)
-        #clear_song_search.triggered.connect(lambda: song_search.clear())
-        #song_search.addAction(clear_song_search)
+        # Shortcuts
+        QShortcut(QKeySequence(Qt.CTRL + Qt.Key_F), self, song_search.setFocus)
 
         # Layouts setup
 
@@ -138,8 +138,8 @@ class MusicPlayer(QWidget):
 
     def search(self, part_of_song):
         for index in range(self.playlistModel.rowCount()):
-            item = self.playlistModel.data(self.playlistModel.index(index, 0))
-            self.playlistView.setRowHidden(index, part_of_song not in item)
+            item = self.playlistModel.data(self.playlistModel.index(index, 0)).lower()
+            self.playlistView.setRowHidden(index, part_of_song.lower() not in item)
 
     def download(self):
         yt = YoutubeDownloader(self.links_to_download.toPlainText().split(','),

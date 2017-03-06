@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QAction
 from core.dialogs import LibrariesManager, DownloadManager
 from core.config import fetch_options
 from core.player import MusicPlayer
+from core.playlist.dialog import PlaylistManager
 
 
 class MainApplication(QMainWindow):
@@ -27,8 +28,11 @@ class MainApplication(QMainWindow):
         edit_libraries_action.triggered.connect(self.call_libraries_manager)
         download_action = QAction('&Download music', self)
         download_action.triggered.connect(self.call_download_manager)
+        playlist_action = QAction('&Configure playlist', self)
+        playlist_action.triggered.connect(self.call_playlist_manager)
         music_menu.addAction(edit_libraries_action)
         music_menu.addAction(download_action)
+        music_menu.addAction(playlist_action)
 
         options = fetch_options()
         print(options['paths'])
@@ -84,6 +88,12 @@ class MainApplication(QMainWindow):
         self.libraries_manager = LibrariesManager()
         self.libraries_manager.set_app_associations(self, self.widget)
         self.libraries_manager.show()
+
+    def call_playlist_manager(self):
+        self.playlist_manager = PlaylistManager()
+        self.playlist_manager.set_app_associations(self, self.widget)
+        self.playlist_manager.show()
+
 
 
 if __name__ == "__main__":

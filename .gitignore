@@ -19,6 +19,9 @@ pt.cfg
 # mp3 files
 *.mp3
 
+# lst files
+*.lst
+
 # C extensions
 *.so
 

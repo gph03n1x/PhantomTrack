@@ -8,16 +8,17 @@ from os.path import isfile, join, exists
 from PyQt5.QtGui import QPixmap, QKeySequence
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
-from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QLineEdit, QShortcut,
+from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QLineEdit, QShortcut, QComboBox,
                              QToolButton, QVBoxLayout, QWidget, QLabel)
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 # Core libraries
 from core.analysis import WavePlot
-from core.playlist import PlaylistModel
+from core.playlist.model import PlaylistModel
 from core.downloader import YoutubeDownloader
 from core.config import fetch_options
+from core.playlist.storage import read_playlist
 
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']
@@ -105,10 +106,20 @@ class MusicPlayer(QWidget):
         song_search.textChanged.connect(self.search)
         song_search.setClearButtonEnabled(True)
 
+        # Playlist
+
+        self.playlist_name = QComboBox()
+        self.playlist_name.currentTextChanged.connect(self.switch_playlist)
+        self.refresh_lists()
+
+
         # Shortcuts
         QShortcut(QKeySequence(Qt.CTRL + Qt.Key_F), self, song_search.setFocus)
 
         # Layouts setup
+
+        playlist_layout = QHBoxLayout()
+        playlist_layout.addWidget(self.playlist_name)
 
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
@@ -124,6 +135,7 @@ class MusicPlayer(QWidget):
         display_layout = QVBoxLayout()
         display_layout.addWidget(song_search)
         display_layout.addWidget(self.playlistView)
+        display_layout.addLayout(playlist_layout)
 
         music_layout = QVBoxLayout()
         music_layout.addWidget(self.image_label)
@@ -135,6 +147,17 @@ class MusicPlayer(QWidget):
         #main_layout.addWidget(self.canvas)
 
         self.setLayout(main_layout)
+
+    def switch_playlist(self, current_text):
+        self.playlist.clear()
+        if current_text == "No Playlist":
+            self.refresh()
+        else:
+            if read_playlist(current_text):
+                songs = read_playlist(current_text).split('\n')
+                for song in songs:
+                    self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(song)))
+
 
     def search(self, part_of_song):
         for index in range(self.playlistModel.rowCount()):
@@ -149,6 +172,13 @@ class MusicPlayer(QWidget):
         self.links_to_download.clear()
 
     def change_thumbnail(self, position=None):
+
+        # TODO: use it to find most similar.
+        """
+        from difflib import SequenceMatcher
+        def similar(a, b):
+            return SequenceMatcher(None, a, b).ratio()
+        """
         if position is not None:
             self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
 
@@ -179,6 +209,15 @@ class MusicPlayer(QWidget):
             for item in listdir(path):
                 if isfile(join(path, item))and item.endswith(".mp3") and (item not in current_songs):
                     self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(path, item))))
+
+    def refresh_lists(self):
+        path = fetch_options()['paths']['playlist']
+        self.playlist_name.clear()
+        self.playlist_name.addItem("No Playlist")
+        for item in listdir(path):
+            if isfile(join(path, item)) and item.endswith(".lst"):
+                self.playlist_name.addItem(item.split('.')[0])
+
 
     def playback_mode(self):
         # Normal -> Loop -> Random

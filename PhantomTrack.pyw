@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import sys
 # Third party libraries
 from PyQt5.QtCore import Qt

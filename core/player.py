@@ -8,7 +8,7 @@ from os.path import isfile, join, exists
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
-from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle,
+from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QLineEdit, QAction,
                              QToolButton, QVBoxLayout, QWidget, QLabel)
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -82,7 +82,6 @@ class MusicPlayer(QWidget):
         self.player = QMediaPlayer()
         self.player.setVolume(50)
 
-
         self.playlist = QMediaPlaylist()
         self.playlist.setPlaybackMode(self.values[0])
         self.playlist.setCurrentIndex(1)
@@ -102,6 +101,13 @@ class MusicPlayer(QWidget):
             lambda position: self.change_thumbnail(position)
         )
 
+        song_search = QLineEdit()
+        song_search.textChanged.connect(self.search)
+
+        #clear_song_search = QAction(self.style().standardIcon(QStyle.SP_BrowserStop), "", song_search)
+        #clear_song_search.triggered.connect(lambda: song_search.clear())
+        #song_search.addAction(clear_song_search)
+
         # Layouts setup
 
         control_layout = QHBoxLayout()
@@ -115,7 +121,8 @@ class MusicPlayer(QWidget):
         control_layout.addWidget(self.playbackButton)
         control_layout.addWidget(self.waveformButton)
 
-        display_layout = QHBoxLayout()
+        display_layout = QVBoxLayout()
+        display_layout.addWidget(song_search)
         display_layout.addWidget(self.playlistView)
 
         music_layout = QVBoxLayout()
@@ -128,6 +135,11 @@ class MusicPlayer(QWidget):
         #main_layout.addWidget(self.canvas)
 
         self.setLayout(main_layout)
+
+    def search(self, part_of_song):
+        for index in range(self.playlistModel.rowCount()):
+            item = self.playlistModel.data(self.playlistModel.index(index, 0))
+            self.playlistView.setRowHidden(index, part_of_song not in item)
 
     def download(self):
         yt = YoutubeDownloader(self.links_to_download.toPlainText().split(','),

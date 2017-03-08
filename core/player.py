@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import re
 import random
-import hashlib
+import operator
 from os import listdir
 from os.path import isfile, join, exists
+from difflib import SequenceMatcher
 # Third party libraries
 from PyQt5.QtGui import QPixmap, QKeySequence
 from PyQt5.QtCore import Qt, QUrl
@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QLineEdit,
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 # Core libraries
-from core.analysis import WavePlot
+from core.analysis.analysis import WavePlot
 from core.playlist.model import PlaylistModel
 from core.downloader import YoutubeDownloader
 from core.config import fetch_options
@@ -34,7 +34,9 @@ class MusicPlayer(QWidget):
         self.jumping = False
         self.durations = {}
         self.playback_value = 0
+
         self.text = ["None", "Repeat", "Random"]
+        self.playlist_list = []
         self.values = [QMediaPlaylist.Loop, QMediaPlaylist.CurrentItemInLoop, QMediaPlaylist.Random]
 
         # Thumbnail widget
@@ -107,11 +109,9 @@ class MusicPlayer(QWidget):
         song_search.setClearButtonEnabled(True)
 
         # Playlist
-
         self.playlist_name = QComboBox()
         self.playlist_name.currentTextChanged.connect(self.switch_playlist)
         self.refresh_lists()
-
 
         # Shortcuts
         QShortcut(QKeySequence(Qt.CTRL + Qt.Key_F), self, song_search.setFocus)
@@ -172,15 +172,14 @@ class MusicPlayer(QWidget):
         self.links_to_download.clear()
 
     def change_thumbnail(self, position=None):
-
-        # TODO: use it to find most similar.
-        """
-        from difflib import SequenceMatcher
+        # TODO: cache this somehow.
         def similar(a, b):
             return SequenceMatcher(None, a, b).ratio()
-        """
+
         if position is not None:
             self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
+        else:
+            self.playlistView.setCurrentIndex(self.playlistModel.index(0, 0))
 
         try:
             image_path = THUMBNAILS + self.playlistView.currentIndex().data().replace('.mp3', '.jpg')
@@ -192,9 +191,15 @@ class MusicPlayer(QWidget):
                 self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
                 return
 
-        choices = [item for item in listdir(THUMBNAILS) if item.endswith('.jpg')]
+        choices = {}
+
+        for item in listdir(THUMBNAILS):
+            if item.endswith('.jpg'):
+                choices[item] = similar(item, self.playlistView.currentIndex().data().replace('.mp3', '.jpg'))
+
         if choices:
-            img = random.choice(choices)
+            sorted_x = sorted(choices.items(), key=operator.itemgetter(1))
+            img = sorted_x[-1][0]
             p = QPixmap(THUMBNAILS + img)
             self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
 
@@ -213,9 +218,11 @@ class MusicPlayer(QWidget):
     def refresh_lists(self):
         path = fetch_options()['paths']['playlist']
         self.playlist_name.clear()
+        self.playlist_list = ["No Playlist"]
         self.playlist_name.addItem("No Playlist")
         for item in listdir(path):
             if isfile(join(path, item)) and item.endswith(".lst"):
+                self.playlist_list.append(item.split('.')[0])
                 self.playlist_name.addItem(item.split('.')[0])
 
 

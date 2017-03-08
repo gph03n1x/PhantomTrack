@@ -4,15 +4,15 @@ from os.path import isfile, join
 
 from PyQt5.QtCore import Qt, QStringListModel
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import (QHBoxLayout, QStyle, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget, QCompleter,
+from PyQt5.QtWidgets import (QHBoxLayout, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget, QCompleter,
     QLabel, QShortcut, QLineEdit)
 
 from core.config import fetch_options
 from core.playlist.storage import create_playlist, read_playlist
 
-class PlaylistManager(QWidget):
+class WaveGraphic(QWidget):
     def __init__(self, parent=None):
-
+        # TODO: todo
         QWidget.__init__(self, parent)
         self.setObjectName("Playlist Manager")
         self.setWindowTitle("Playlist Manager")
@@ -48,11 +48,6 @@ class PlaylistManager(QWidget):
         self.remove_button = QToolButton(clicked=self.remove_from_table)
         self.remove_button.setText("-")
 
-        self.up_button = QToolButton(clicked=self.move_up)
-        self.up_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowUp))
-        self.down_button = QToolButton(clicked=self.move_down)
-        self.down_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
-
         self.download_label = QLabel()
 
         self.song_search = QLineEdit()
@@ -80,8 +75,6 @@ class PlaylistManager(QWidget):
         playlist_controls = QVBoxLayout()
         playlist_controls.addWidget(self.add_button)
         playlist_controls.addWidget(self.remove_button)
-        playlist_controls.addWidget(self.up_button)
-        playlist_controls.addWidget(self.down_button)
 
         playlist_layout = QHBoxLayout()
         playlist_layout.addWidget(self.libraries)
@@ -109,70 +102,7 @@ class PlaylistManager(QWidget):
             item = self.libraries.model().index(index, 0).data().lower()
             self.libraries.setRowHidden(index, part_of_song.lower() not in item)
 
-    def move_up(self):
-
-        for index in sorted(self.playlist.selectedIndexes())[::-1]:
-            if index.row() - 1 >= 0:
-                item, above = self.playlist.model().index(index.row(), 0).data(), self.playlist.model().index(index.row() - 1, 0).data()
-                self.playlist.setItem(index.row() - 1, 0, QTableWidgetItem(item))
-                self.playlist.setItem(index.row(), 0, QTableWidgetItem(above))
-
-    def move_down(self):
-
-        for index in sorted(self.playlist.selectedIndexes()):
-            if index.row() + 1 <= self.playlist.rowCount():
-                item, above = self.playlist.model().index(index.row(), 0).data(), self.playlist.model().index(index.row() + 1, 0).data()
-                self.playlist.setItem(index.row() + 1, 0, QTableWidgetItem(item))
-                self.playlist.setItem(index.row(), 0, QTableWidgetItem(above))
 
     def set_app_associations(self, app, widget):
         self.app = app
         self.widget = widget
-
-    def refresh_lists(self):
-        path = fetch_options()['paths']['playlist']
-
-        self.available_playlist.setStringList([ item.split('.')[0] for item in listdir(path)
-                                                if isfile(join(path, item)) and item.endswith(".lst")])
-
-    def add_to_table(self):
-        for index in sorted(self.libraries.selectedIndexes())[::-1]:
-            item = self.libraries.item(index.row(), 0)
-            self.playlist.setRowCount(self.playlist_items + 1)
-            self.playlist.setItem(self.playlist_items, 0, QTableWidgetItem(item))
-            self.playlist_items += 1
-
-    def remove_from_table(self):
-        self.playlist_items -= len(self.playlist.selectedIndexes())
-        for index in sorted(self.playlist.selectedIndexes())[::-1]:
-            self.playlist.removeRow(index.row())
-
-    def save(self, refresh):
-        if self.playlist_name.text():
-            playlist =[]
-            for path in range(self.playlist.rowCount()):
-                item = self.playlist.model().index(path, 0).data()
-                if item in self.music_files.keys():
-                    playlist.append(self.music_files[item])
-                else:
-                    playlist.append(item)
-
-            create_playlist(self.playlist_name.text(), playlist)
-            self.refresh_lists()
-
-            if self.playlist_name.text() not in self.widget.playlist_list:
-                self.widget.playlist_list.append(self.playlist_name.text())
-                self.widget.playlist_name.addItem(self.playlist_name.text())
-
-    def load(self):
-        if self.playlist_name.text():
-            songs = read_playlist(self.playlist_name.text()).split('\n')
-            if songs:
-                self.playlist.clear()
-                self.playlist_items = 0
-                self.playlist.setRowCount(self.playlist_items)
-                for song in songs:
-                    if song.endswith('.mp3'):
-                        self.playlist.setRowCount(self.playlist_items + 1)
-                        self.playlist.setItem(self.playlist_items, 0, QTableWidgetItem(song))
-                        self.playlist_items += 1

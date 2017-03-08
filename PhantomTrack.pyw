@@ -2,7 +2,7 @@
 import sys
 # Third party libraries
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPalette
+from PyQt5.QtGui import QColor, QPalette, QKeySequence
 from PyQt5.QtWidgets import QApplication, QMainWindow, QAction
 # Core libraries
 from core.dialogs import LibrariesManager, DownloadManager
@@ -27,8 +27,10 @@ class MainApplication(QMainWindow):
         edit_libraries_action = QAction('&Library folders', self)
         edit_libraries_action.triggered.connect(self.call_libraries_manager)
         download_action = QAction('&Download music', self)
+        download_action.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_D))
         download_action.triggered.connect(self.call_download_manager)
         playlist_action = QAction('&Configure playlist', self)
+        playlist_action.setShortcut(QKeySequence(Qt.CTRL + Qt.Key_P))
         playlist_action.triggered.connect(self.call_playlist_manager)
         music_menu.addAction(edit_libraries_action)
         music_menu.addAction(download_action)

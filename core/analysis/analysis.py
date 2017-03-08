@@ -15,12 +15,12 @@ PLOT_PATH = options['paths']['plot_path']
 WAVE_CMD = options['commands']['wave_conversion']
 MUSIC_PATH = get_default_path()
 
-
 class WavePlot:
     def __init__(self, filename, dialog=True, remove_wave_file=True):
         self.dialog = dialog
         self.remove_wave_file = remove_wave_file
         self.converter = WaveConverter(filename, self.plot)
+
 
     def plot(self, wav_name, png_name):
         """
@@ -29,6 +29,7 @@ class WavePlot:
         :param png_name:
         :return:
         """
+
         plt.ylabel("Amplitude")
         plt.xlabel("Time")
         input_data = read(wav_name)
@@ -57,6 +58,7 @@ class WaveConverter:
         self.png_name = PLOT_PATH + filename.replace(".mp3", ".png")
         self.convert_process = QProcess()
         self.convert_process.finished.connect(lambda : on_finish(self.wav_name, self.png_name))
+        #on_finish(self.full_path, self.png_name)
 
 
     def convert(self):

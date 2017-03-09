@@ -113,6 +113,11 @@ class MusicPlayer(QWidget):
         self.playlist_name.currentTextChanged.connect(self.switch_playlist)
         self.refresh_lists()
 
+        self.up_button = QToolButton(clicked=self.move_up)
+        self.up_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowUp))
+        self.down_button = QToolButton(clicked=self.move_down)
+        self.down_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
+
         # Shortcuts
         QShortcut(QKeySequence(Qt.CTRL + Qt.Key_F), self, song_search.setFocus)
 
@@ -120,6 +125,8 @@ class MusicPlayer(QWidget):
 
         playlist_layout = QHBoxLayout()
         playlist_layout.addWidget(self.playlist_name)
+        playlist_layout.addWidget(self.up_button)
+        playlist_layout.addWidget(self.down_button)
 
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
@@ -147,6 +154,30 @@ class MusicPlayer(QWidget):
         #main_layout.addWidget(self.canvas)
 
         self.setLayout(main_layout)
+
+    def move_up(self):
+        # TODO: crashes when playing the moved song, plays moved song if it is playing something else
+        index = self.playlistView.currentIndex().row()
+        #for index in sorted(self.playlist.selectedIndexes())[::-1]:
+        if index - 1 >= 0:
+            item, above = self.playlist.media(index), self.playlist.media(index - 1)
+            self.playlist.removeMedia(index)
+            self.playlist.removeMedia(index - 1)
+            self.playlist.insertMedia(index - 1, item)
+            self.playlist.insertMedia(index, above)
+            self.playlistView.setCurrentIndex(self.playlistModel.index(index - 1, 0))
+
+    def move_down(self):
+        index = self.playlistView.currentIndex().row()
+        # for index in sorted(self.playlist.selectedIndexes())[::-1]:
+        if index + 1 <= self.playlistModel.rowCount():
+            item, below = self.playlist.media(index), self.playlist.media(index + 1)
+            self.playlist.removeMedia(index + 1)
+            self.playlist.removeMedia(index)
+            self.playlist.insertMedia(index, below)
+            self.playlist.insertMedia(index + 1, item)
+
+            self.playlistView.setCurrentIndex(self.playlistModel.index(index + 1, 0))
 
     def switch_playlist(self, current_text):
         self.playlist.clear()

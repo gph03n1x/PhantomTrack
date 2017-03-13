@@ -2,7 +2,16 @@
 import configparser
 import os
 import os.path
+from difflib import SequenceMatcher
 
+
+def similar(a, b):
+    """
+    http://stackoverflow.com/questions/17388213/find-the-similarity-percent-between-two-strings
+    Gets the similar ratio of two strings.
+    :return:
+    """
+    return SequenceMatcher(None, a, b).ratio()
 
 def rename_config():
     """

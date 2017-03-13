@@ -1,9 +1,6 @@
 #!/usr/bin/env python
-import random
-import operator
 from os import listdir
 from os.path import isfile, join, exists
-from difflib import SequenceMatcher
 # Third party libraries
 from PyQt5.QtGui import QPixmap, QKeySequence
 from PyQt5.QtCore import Qt, QUrl
@@ -17,7 +14,7 @@ import matplotlib.pyplot as plt
 from core.analysis.analysis import WavePlot
 from core.playlist.model import PlaylistModel
 from core.downloader import YoutubeDownloader
-from core.config import fetch_options
+from core.config import fetch_options, similar
 from core.playlist.storage import read_playlist
 
 options = fetch_options()
@@ -32,6 +29,7 @@ class MusicPlayer(QWidget):
         QWidget.__init__(self, parent)
 
         self.jumping = False
+        self.blocked = False
         self.durations = {}
         self.playback_value = 0
 
@@ -165,7 +163,9 @@ class MusicPlayer(QWidget):
             self.playlist.removeMedia(index - 1)
             self.playlist.insertMedia(index - 1, item)
             self.playlist.insertMedia(index, above)
+            self.blocked = True
             self.playlistView.setCurrentIndex(self.playlistModel.index(index - 1, 0))
+            self.blocked = False
 
     def move_down(self):
         index = self.playlistView.currentIndex().row()
@@ -176,8 +176,9 @@ class MusicPlayer(QWidget):
             self.playlist.removeMedia(index)
             self.playlist.insertMedia(index, below)
             self.playlist.insertMedia(index + 1, item)
-
+            self.blocked = True
             self.playlistView.setCurrentIndex(self.playlistModel.index(index + 1, 0))
+            self.blocked = False
 
     def switch_playlist(self, current_text):
         self.playlist.clear()
@@ -202,35 +203,23 @@ class MusicPlayer(QWidget):
         yt.begin()
         self.links_to_download.clear()
 
-    def change_thumbnail(self, position=None):
-        # TODO: cache this somehow.
-        def similar(a, b):
-            return SequenceMatcher(None, a, b).ratio()
+    def change_thumbnail(self, position=0):
+        if self.blocked:
+            return
 
-        if position is not None:
-            self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
-        else:
-            self.playlistView.setCurrentIndex(self.playlistModel.index(0, 0))
+        self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
 
-        try:
-            image_path = THUMBNAILS + self.playlistView.currentIndex().data().replace('.mp3', '.jpg')
-        except AttributeError:
-            pass
-        else:
-            if exists(image_path):
-                p = QPixmap(image_path)
-                self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
-                return
-
-        choices = {}
+        max_ratio = 0
+        img = None
 
         for item in listdir(THUMBNAILS):
             if item.endswith('.jpg'):
-                choices[item] = similar(item, self.playlistView.currentIndex().data().replace('.mp3', '.jpg'))
+                ratio = similar(item, self.playlistView.currentIndex().data().replace('.mp3', '.jpg'))
+                if ratio > max_ratio:
+                    max_ratio = ratio
+                    img = item
 
-        if choices:
-            sorted_x = sorted(choices.items(), key=operator.itemgetter(1))
-            img = sorted_x[-1][0]
+        if img:
             p = QPixmap(THUMBNAILS + img)
             self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
 
@@ -273,13 +262,13 @@ class MusicPlayer(QWidget):
         self.wave_plot.begin()
 
     def jump(self, index):
-        if index.isValid():
+        if index.isValid() and not self.blocked:
             self.playlist.setCurrentIndex(index.row())
             self.jumping = True
             self.play()
 
     def play(self):
-        if self.player.state() != QMediaPlayer.PlayingState or self.jumping:
+        if self.player.state() != QMediaPlayer.PlayingState or self.jumping and not self.blocked:
             self.player.play()
             self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
             self.jumping = False

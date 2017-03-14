@@ -1,54 +1,13 @@
 #!/usr/bin/env python
 import os
 import os.path
-import time
-from scipy.io.wavfile import read
-import matplotlib.pyplot as plt
-from PyQt5.QtCore import QProcess, QThread
+from PyQt5.QtCore import QProcess
+from core.config import fetch_options, parse_command, find_path
 
-from core.config import fetch_options, get_default_path, parse_command, find_path
-from core.dialogs import wave_dialog
 
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']
-PLOT_PATH = options['paths']['plot_path']
 WAVE_CMD = options['commands']['wave_conversion']
-MUSIC_PATH = get_default_path()
-
-class WavePlot:
-    def __init__(self, filename, dialog=True, remove_wave_file=True):
-        self.dialog = dialog
-        self.remove_wave_file = remove_wave_file
-        self.converter = WaveConverter(filename, self.plot)
-
-
-    def plot(self, wav_name, png_name):
-        """
-        Creates the plot of the wave file and saves it as an image.
-        :param wav_name:
-        :param png_name:
-        :return:
-        """
-
-        plt.ylabel("Amplitude")
-        plt.xlabel("Time")
-        input_data = read(wav_name)
-        audio = input_data[1]
-
-        plt.plot(audio[::22050])
-
-        if self.remove_wave_file:
-            os.remove(wav_name)
-
-        plt.savefig(png_name, bbox_inches='tight')
-        plt.clf()
-
-        if self.dialog:
-            wave_dialog(png_name)
-
-    def begin(self):
-        self.converter.convert()
-
 
 
 class WaveConverter:

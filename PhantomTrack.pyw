@@ -43,8 +43,6 @@ class MainApplication(QMainWindow):
             self.do_not_refresh = True
             self.hide()
 
-
-
     def begin(self):
         """
         Checks the music paths and there none defined it
@@ -59,8 +57,7 @@ class MainApplication(QMainWindow):
         else:
             self.show()
 
-
-    def set_up_gui(self, widget):
+    def set_up_gui(self):
         """
         Sets the player widget as the main widget of the application
         and if the user had music libraries defined already then
@@ -68,19 +65,20 @@ class MainApplication(QMainWindow):
         :param widget:
         :return:
         """
-        self.widget = widget
-        self.setCentralWidget(widget)
+        self.widget = MusicPlayer(self)
+        self.setCentralWidget(self.widget)
         if not self.do_not_refresh:
             self.widget.refresh()
             self.widget.change_thumbnail(0)
 
-    def call_download_manager(self):
+    def call_download_manager(self, links=None):
         """
         Shows a download manager window
         :return:
         """
         self.download_manager = DownloadManager()
         self.download_manager.set_refresh(self.widget.refresh)
+        self.download_manager.add_links(links)
         self.download_manager.show()
         self.download_manager.links_to_download.setFocus()
 
@@ -97,7 +95,6 @@ class MainApplication(QMainWindow):
         self.playlist_manager = PlaylistManager()
         self.playlist_manager.set_app_associations(self, self.widget)
         self.playlist_manager.show()
-
 
 
 if __name__ == "__main__":
@@ -122,11 +119,9 @@ if __name__ == "__main__":
 
     app.setPalette(palette)
 
-    music_player = MusicPlayer()
-
     main_app = MainApplication()
     main_app.setWindowTitle("Phantom Track")
-    main_app.set_up_gui(music_player)
+    main_app.set_up_gui()
     main_app.begin()
 
     sys.exit(app.exec_())

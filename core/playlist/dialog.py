@@ -4,8 +4,8 @@ from os.path import isfile, join
 
 from PyQt5.QtCore import Qt, QStringListModel
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtWidgets import (QHBoxLayout, QStyle, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget, QCompleter,
-    QLabel, QShortcut, QLineEdit)
+from PyQt5.QtWidgets import (QHBoxLayout, QStyle, QTableWidget, QTableWidgetItem, QToolButton,
+                             QVBoxLayout, QWidget, QCompleter, QLabel, QShortcut, QLineEdit)
 
 from core.config import fetch_options
 from core.playlist.storage import create_playlist, read_playlist

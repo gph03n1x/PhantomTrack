@@ -1,31 +1,11 @@
 #!/usr/bin/env python
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
+
 from PyQt5.QtWidgets import (QHBoxLayout, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget,
-    QLabel, QDialog, QFileDialog, QProgressBar, QLineEdit)
+    QLabel, QFileDialog, QProgressBar, QLineEdit, QSizePolicy)
 
 from core.config import fetch_options, update_music_paths
 from core.downloader import YoutubeDownloader
-
-
-def wave_dialog(png_name):
-    """
-    Creates a dialog with an image label
-    :param png_name:
-    :return:
-    """
-    image = QPixmap(png_name)
-
-    Dialog = QDialog()
-    Dialog.setWindowModality(Qt.WindowModal)
-    Dialog.setWindowTitle(png_name)
-
-    Dialog.resize(image.width(), image.height())
-
-    waveform = QLabel(Dialog)
-    waveform.setPixmap(image)
-    waveform.show()
-    Dialog.exec_()
 
 
 class DownloadManager(QWidget):
@@ -38,7 +18,7 @@ class DownloadManager(QWidget):
         self.libraries = QTableWidget()
         self.items = 0
         self.libraries.setRowCount(self.items)
-        self.libraries.setColumnCount(1)
+        self.libraries.setColumnCount(2)
         self.libraries.horizontalHeader().setStretchLastSection(True)
         self.libraries.horizontalHeader().hide()
 
@@ -67,6 +47,17 @@ class DownloadManager(QWidget):
 
         self.setLayout(download_layout)
 
+    def add_links(self, links):
+        if not links:
+            return
+        for link in links:
+            url, title = link
+            self.libraries.setRowCount(self.items + 1)
+            self.libraries.setItem(self.items, 0, QTableWidgetItem(url))
+            self.libraries.setItem(self.items, 1, QTableWidgetItem(title))
+            self.items += 1
+
+
     def add_to_table(self):
         if self.links_to_download.text():
             print(self.links_to_download.text())
@@ -74,7 +65,6 @@ class DownloadManager(QWidget):
             self.libraries.setItem(self.items, 0, QTableWidgetItem(self.links_to_download.text()))
             self.items += 1
             self.links_to_download.clear()
-
 
     def remove_from_table(self):
         self.items -= len(self.libraries.selectedIndexes())
@@ -102,8 +92,6 @@ class DownloadManager(QWidget):
         self.download_status.hide()
         self.links_to_download.show()
         self.refresh()
-
-
 
 
 class LibrariesManager(QWidget):

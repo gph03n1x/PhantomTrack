@@ -9,7 +9,6 @@ from core.config import fetch_options, get_default_path, parse_command
 
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']
-PLOT_PATH = options['paths']['plot_path']
 MUSIC_PATH = get_default_path()
 YOUTUBE_CMD = options['commands']['download']
 THUMBNAILS = options['paths']['thumbnails']
@@ -38,7 +37,6 @@ class YoutubeDownloader:
         self.process.finished.connect(self.download_complete)
 
         self.download_input = {'ffmpeg': FFMPEG_BIN}
-
 
     def download_complete(self):
         """

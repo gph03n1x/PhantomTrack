@@ -50,14 +50,14 @@ class WavePlot:
         self.converter.convert()
 
 
+
 class WaveConverter:
 
     def __init__(self, filename, on_finish):
         self.full_path = find_path(filename)
         self.wav_name = filename.replace(".mp3", ".wav")
-        self.png_name = PLOT_PATH + filename.replace(".mp3", ".png")
         self.convert_process = QProcess()
-        self.convert_process.finished.connect(lambda : on_finish(self.wav_name, self.png_name))
+        self.convert_process.finished.connect(lambda : on_finish(self.wav_name, filename))
         #on_finish(self.full_path, self.png_name)
 
 

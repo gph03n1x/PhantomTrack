@@ -43,6 +43,8 @@ class MainApplication(QMainWindow):
             self.do_not_refresh = True
             self.hide()
 
+
+
     def begin(self):
         """
         Checks the music paths and there none defined it
@@ -119,6 +121,7 @@ if __name__ == "__main__":
     palette.setColor(QPalette.HighlightedText, Qt.black)
 
     app.setPalette(palette)
+
     music_player = MusicPlayer()
 
     main_app = MainApplication()

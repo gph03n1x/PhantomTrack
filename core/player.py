@@ -2,7 +2,7 @@
 from os import listdir
 from os.path import isfile, join, exists
 # Third party libraries
-from PyQt5.QtGui import QPixmap, QKeySequence
+from PyQt5.QtGui import QPixmap, QKeySequence, QPalette, QColor
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
 from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QLineEdit, QShortcut, QComboBox,
@@ -11,9 +11,9 @@ from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QLineEdit,
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 # Core libraries
-from core.analysis.analysis import WavePlot
+from core.analysis.analysis import WaveConverter
+from core.analysis.dialog import WaveGraphic
 from core.playlist.model import PlaylistModel
-from core.downloader import YoutubeDownloader
 from core.config import fetch_options, similar
 from core.playlist.storage import read_playlist
 
@@ -75,8 +75,8 @@ class MusicPlayer(QWidget):
         self.volumeSlider.setPageStep(1)
         self.volumeSlider.setValue(50)
 
-        self.waveformButton = QToolButton(clicked=self.get_waveform)
-        self.waveformButton.setText("Waveform")
+        #self.waveformButton = QToolButton(clicked=self.get_waveform)
+        #self.waveformButton.setText("Waveform")
 
         # Player and playlist setup
 
@@ -116,6 +116,11 @@ class MusicPlayer(QWidget):
         self.down_button = QToolButton(clicked=self.move_down)
         self.down_button.setIcon(self.style().standardIcon(QStyle.SP_ArrowDown))
 
+        # Soundwave
+
+        self.wg = WaveGraphic()
+        self.wg.hide()
+
         # Shortcuts
         QShortcut(QKeySequence(Qt.CTRL + Qt.Key_F), self, song_search.setFocus)
 
@@ -135,7 +140,7 @@ class MusicPlayer(QWidget):
         control_layout.addWidget(self.muteButton)
         control_layout.addWidget(self.volumeSlider)
         control_layout.addWidget(self.playbackButton)
-        control_layout.addWidget(self.waveformButton)
+        #control_layout.addWidget(self.waveformButton)
 
         display_layout = QVBoxLayout()
         display_layout.addWidget(song_search)
@@ -149,14 +154,17 @@ class MusicPlayer(QWidget):
         main_layout = QHBoxLayout()
         main_layout.addLayout(music_layout)
         main_layout.addLayout(display_layout)
-        #main_layout.addWidget(self.canvas)
 
-        self.setLayout(main_layout)
+        main_2_layout = QVBoxLayout()
+        main_2_layout.addLayout(main_layout)
+        main_2_layout.addWidget(self.wg)
+
+        self.setLayout(main_2_layout)
+
+
 
     def move_up(self):
-        # TODO: crashes when playing the moved song, plays moved song if it is playing something else
         index = self.playlistView.currentIndex().row()
-        #for index in sorted(self.playlist.selectedIndexes())[::-1]:
         if index - 1 >= 0:
             item, above = self.playlist.media(index), self.playlist.media(index - 1)
             self.playlist.removeMedia(index)
@@ -166,10 +174,11 @@ class MusicPlayer(QWidget):
             self.blocked = True
             self.playlistView.setCurrentIndex(self.playlistModel.index(index - 1, 0))
             self.blocked = False
+            self.stop()
+
 
     def move_down(self):
         index = self.playlistView.currentIndex().row()
-        # for index in sorted(self.playlist.selectedIndexes())[::-1]:
         if index + 1 <= self.playlistModel.rowCount():
             item, below = self.playlist.media(index), self.playlist.media(index + 1)
             self.playlist.removeMedia(index + 1)
@@ -179,6 +188,7 @@ class MusicPlayer(QWidget):
             self.blocked = True
             self.playlistView.setCurrentIndex(self.playlistModel.index(index + 1, 0))
             self.blocked = False
+            self.stop()
 
     def switch_playlist(self, current_text):
         self.playlist.clear()
@@ -196,18 +206,20 @@ class MusicPlayer(QWidget):
             item = self.playlistModel.data(self.playlistModel.index(index, 0)).lower()
             self.playlistView.setRowHidden(index, part_of_song.lower() not in item)
 
-    def download(self):
-        yt = YoutubeDownloader(self.links_to_download.toPlainText().split(','),
-                               self.download_label, self.download_button,
-                               self.download_status, self.refresh)
-        yt.begin()
-        self.links_to_download.clear()
 
     def change_thumbnail(self, position=0):
-        if self.blocked:
-            return
 
         self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
+
+        if self.playlistView.currentIndex().data() is None or self.blocked:
+            return
+
+        print("Casted")
+        print(self.player.state())
+        print(QMediaPlayer.PlayingState)
+        if self.player.state() == QMediaPlayer.PlayingState:
+            wc_ = WaveConverter(self.playlistView.selectedIndexes()[0].data(), self.wg.set_wav)
+            wc_.convert()
 
         max_ratio = 0
         img = None
@@ -222,6 +234,8 @@ class MusicPlayer(QWidget):
         if img:
             p = QPixmap(THUMBNAILS + img)
             self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
+
+        #self.wg.animate()
 
     def refresh(self):
         # Change it so it will go to same song.
@@ -257,10 +271,6 @@ class MusicPlayer(QWidget):
         self.playlist.setPlaybackMode(self.values[self.playback_value])
         self.playbackButton.setText(self.text[self.playback_value])
 
-    def get_waveform(self):
-        self.wave_plot = WavePlot(self.playlistView.selectedIndexes()[0].data())
-        self.wave_plot.begin()
-
     def jump(self, index):
         if index.isValid() and not self.blocked:
             self.playlist.setCurrentIndex(index.row())
@@ -268,14 +278,15 @@ class MusicPlayer(QWidget):
             self.play()
 
     def play(self):
-        if self.player.state() != QMediaPlayer.PlayingState or self.jumping and not self.blocked:
+        if self.blocked:
+            return
+        if self.player.state() != QMediaPlayer.PlayingState or self.jumping:
             self.player.play()
             self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
             self.jumping = False
         else:
             self.player.pause()
             self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-
         self.stopButton.setEnabled(True)
 
     def change_volume(self, value):
@@ -284,8 +295,9 @@ class MusicPlayer(QWidget):
     def stop(self):
         if self.player.state() != QMediaPlayer.StoppedState:
             self.player.stop()
-            self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-            self.stopButton.setEnabled(False)
+        self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        self.stopButton.setEnabled(False)
+        self.wg.stop = True
 
     def next_song(self):
         self.playlist.next()

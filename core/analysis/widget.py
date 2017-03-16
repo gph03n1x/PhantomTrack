@@ -5,6 +5,7 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtWidgets import QWidget
 
+
 class WaveGraphic(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
@@ -64,5 +65,4 @@ class WaveGraphic(QWidget):
         #data = len(self.input_data_2) / self.bars
         #self.input_data = self.input_data_2[::int(data)]
         self.show()
-        #self.update()
         self.animate()

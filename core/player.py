@@ -155,8 +155,11 @@ class MusicPlayer(QWidget):
     def waveform(self, status):
         print(self.player.state())
         if self.player.state() == QMediaPlayer.PlayingState:
-            wc_ = WaveConverter(self.playlistView.selectedIndexes()[0].data(), self.wg.set_wav)
-            wc_.convert()
+            try:
+                wc_ = WaveConverter(self.playlistView.selectedIndexes()[0].data(), self.wg.set_wav)
+                wc_.convert()
+            except:
+                pass
         else:
             self.wg.stop = True
 

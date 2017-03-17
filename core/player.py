@@ -71,7 +71,7 @@ class MusicPlayer(QWidget):
 
         self.player = QMediaPlayer()
         self.player.setVolume(50)
-        self.player.mediaStatusChanged.connect(self.waveform)
+        self.player.stateChanged.connect(self.waveform)
 
         self.playlist = QMediaPlaylist()
         self.playlist.setPlaybackMode(self.values[0])
@@ -153,11 +153,17 @@ class MusicPlayer(QWidget):
         self.setLayout(main_2_layout)
 
     def waveform(self, status):
+        print(status)
         print(self.player.state())
         if self.player.state() == QMediaPlayer.PlayingState:
+            # TODO: this restarts the song.
             try:
-                wc_ = WaveConverter(self.playlistView.selectedIndexes()[0].data(), self.wg.set_wav)
-                wc_.convert()
+                song = self.playlistView.selectedIndexes()[0].data()
+                if self.wg.is_song_cached(song):
+                    self.wg.load_load_waves(song)
+                else:
+                    wc_ = WaveConverter(song, self.wg.set_wav)
+                    wc_.convert()
             except:
                 pass
         else:

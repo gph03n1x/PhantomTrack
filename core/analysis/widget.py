@@ -57,14 +57,14 @@ class WaveGraphic(QWidget):
 
     def animate(self):
         #self.parent().setWindowTitle(self.title)
-        # TODO: lock this
+        # TODO: [BUG] changing song doesnt change the input here
         step = 500
 
         self.input_data = self.input_data_2[self.start:self.start+step]
         if len(self.input_data) == 0 or self.stop:
             self.hide()
             return
-
+        print(self.title)
         self.update()
 
         self.start += step

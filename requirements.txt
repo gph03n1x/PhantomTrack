@@ -1,3 +1,2 @@
 scipy==0.18.1
-matplotlib==2.0.0
 youtube-dl==2017.2.4.1

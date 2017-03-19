@@ -156,7 +156,7 @@ class MusicPlayer(QWidget):
         print(status)
         print(self.player.state())
         if self.player.state() == QMediaPlayer.PlayingState:
-            # TODO: this restarts the song.
+            # TODO: [BUG] this restarts the song.
             try:
                 song = self.playlistView.selectedIndexes()[0].data()
                 if self.wg.is_song_cached(song):
@@ -174,6 +174,7 @@ class MusicPlayer(QWidget):
         recommend_action = QAction('&Recommend Songs', self)
         menu.addAction(recommend_action)
         #print(self.app)
+        # TODO: [FEATURE] add rename song
         menu.triggered.connect(lambda: self.parent().call_download_manager(self.get_links()))
 
         # Show the context menu.
@@ -291,6 +292,7 @@ class MusicPlayer(QWidget):
             self.play()
 
     def play(self):
+        # TODO: [BUG] waveform doesnt start if I call play first
         if self.blocked:
             return
         if self.player.state() != QMediaPlayer.PlayingState or self.jumping:

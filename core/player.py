@@ -319,6 +319,7 @@ class MusicPlayer(QWidget):
                 self.playlistModel.index(self.playlist.currentIndex(), 0))
 
     def previous_song(self):
+        # TODO: [BUG] previous at first should go to last
         self.playlist.previous()
         self.playlistView.setCurrentIndex(
                 self.playlistModel.index(self.playlist.currentIndex(), 0))

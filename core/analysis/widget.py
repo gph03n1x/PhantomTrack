@@ -64,7 +64,7 @@ class WaveGraphic(QWidget):
         if len(self.input_data) == 0 or self.stop:
             self.hide()
             return
-        print(self.title)
+        #print(self.title)
         self.update()
 
         self.start += step

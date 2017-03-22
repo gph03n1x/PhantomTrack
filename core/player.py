@@ -154,20 +154,14 @@ class MusicPlayer(QWidget):
 
     def waveform(self, status):
         print(status)
-        print(self.player.state())
         if self.player.state() == QMediaPlayer.PlayingState:
-            # TODO: [BUG] this restarts the song.
             try:
-                song = self.playlistView.selectedIndexes()[0].data()
-                if self.wg.is_song_cached(song):
-                    self.wg.load_load_waves(song)
-                else:
-                    wc_ = WaveConverter(song, self.wg.set_wav)
-                    wc_.convert()
+                self.wg.animate()
             except:
                 pass
         else:
-            self.wg.stop = True
+            #pass
+            self.wg.stop()
 
     def list_view_menu(self, point):
         menu = QMenu("Menu", self)
@@ -213,16 +207,6 @@ class MusicPlayer(QWidget):
             self.blocked = False
             self.stop()
 
-    def switch_playlist(self, current_text):
-        self.playlist.clear()
-        if current_text == "No Playlist":
-            self.refresh()
-        else:
-            if read_playlist(current_text):
-                songs = read_playlist(current_text).split('\n')
-                for song in songs:
-                    self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(song)))
-
     def search(self, part_of_song):
         for index in range(self.playlistModel.rowCount()):
             item = self.playlistModel.data(self.playlistModel.index(index, 0)).lower()
@@ -231,6 +215,13 @@ class MusicPlayer(QWidget):
     def change_thumbnail(self, position=0):
 
         self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
+
+        song = self.playlistView.selectedIndexes()[0].data()
+        if self.wg.is_song_cached(song):
+            self.wg.load_load_waves(song)
+        else:
+            wc_ = WaveConverter(song, self.wg.set_wav)
+            wc_.convert()
 
         if self.playlistView.currentIndex().data() is None or self.blocked:
             return
@@ -251,8 +242,21 @@ class MusicPlayer(QWidget):
 
         #self.wg.animate()
 
+    def switch_playlist(self, current_text):
+        self.playlist.clear()
+        if current_text == "No Playlist":
+            self.refresh()
+        else:
+            if read_playlist(current_text):
+                songs = read_playlist(current_text).split('\n')
+                for song in songs:
+                    self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(song)))
+
     def refresh(self):
         # Change it so it will go to same song.
+        if self.playlist_name.currentText() != "No Playlist":
+            return
+
         paths = fetch_options()['paths']['music_path'].split(';')
 
         current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
@@ -292,7 +296,6 @@ class MusicPlayer(QWidget):
             self.play()
 
     def play(self):
-        # TODO: [BUG] waveform doesnt start if I call play first
         if self.blocked:
             return
         if self.player.state() != QMediaPlayer.PlayingState or self.jumping:

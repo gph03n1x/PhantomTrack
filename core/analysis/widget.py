@@ -19,7 +19,12 @@ class WaveGraphic(QWidget):
         self.between = 10
         self.input_data = None
         self.setFixedHeight((self.geometry().height()-220)/2)
-        self.stop = False
+        #self.stop = False
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.animate)
+
+    def set_title(self, title):
+        self.parent().parent().setWindowTitle("Phantom Track "+title)
 
     def is_song_cached(self, song):
         song = song.split(".")[0]
@@ -28,7 +33,7 @@ class WaveGraphic(QWidget):
 
     def load_load_waves(self, song):
         song = song.split(".")[0]
-        self.title = song
+        self.set_title(song)
         song_hash = WAVES_DIR + hashlib.sha224(song.encode()).hexdigest() + ".swv"
         if not os.path.exists(song_hash):
             print("[-] Attempt to ready non-cached song")
@@ -39,10 +44,6 @@ class WaveGraphic(QWidget):
         self.input_data_2 = np.load(song_file)
         song_file.close()
         self.start = 0
-        self.stop = False
-        self.show()
-
-        self.animate()
 
     def cache_waves(self, song):
         song = song.split(".")[0]
@@ -55,27 +56,33 @@ class WaveGraphic(QWidget):
         np.save(song_file, self.input_data_2)
         song_file.close()
 
+    def stop(self):
+        self.timer.stop()
+        self.hide()
+
     def animate(self):
+        self.show()
+        print("called")
         #self.parent().setWindowTitle(self.title)
-        # TODO: [BUG] changing song doesnt change the input here
+
         step = 500
 
         self.input_data = self.input_data_2[self.start:self.start+step]
-        if len(self.input_data) == 0 or self.stop:
+        if len(self.input_data) == 0:
             self.hide()
             return
-        #print(self.title)
         self.update()
 
         self.start += step
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.animate)
+
         self.timer.start(step)
 
     def paintEvent(self, e):
-        height = self.geometry().height()
         if self.input_data is None:
             return
+
+        height = self.geometry().height()
+
 
         qp = QPainter()
         qp.begin(self)
@@ -97,13 +104,9 @@ class WaveGraphic(QWidget):
     def set_wav(self, wav, title):
         #self.setWindowTitle(title)
         data = 500 / self.bars
-        self.title = title
+        self.set_title(title)
         self.input_data_2 = read(wav)[1][::int(data)]
         os.remove(wav)
 
         self.cache_waves(wav)
-
         self.start = 0
-        self.stop = False
-        self.show()
-        self.animate()

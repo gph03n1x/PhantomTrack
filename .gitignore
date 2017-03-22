@@ -22,6 +22,9 @@ pt.cfg
 # lst files
 *.lst
 
+# swd files
+*.swd
+
 # C extensions
 *.so
 

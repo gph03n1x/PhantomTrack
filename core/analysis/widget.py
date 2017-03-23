@@ -3,7 +3,7 @@ import os
 import os.path
 import hashlib
 from scipy.io.wavfile import read
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QRect, Qt
 from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtWidgets import QWidget
 import numpy as np
@@ -81,6 +81,7 @@ class WaveGraphic(QWidget):
             return
 
         height = self.geometry().height()
+        width = self.geometry().width()
 
 
         qp = QPainter()
@@ -88,16 +89,18 @@ class WaveGraphic(QWidget):
         #qp.setBrush(QBrush(Qt.SolidPattern))
         pen = QPen()
         pen.setWidth(2)
+        pen.setColor(QColor(0, 0, 0))
         qp.setPen(pen)
+        qp.fillRect(QRect(0,0, width, height), Qt.white)
         for i, p in enumerate(self.input_data):
             pen.setColor(QColor(0, 69, 88))
             qp.setPen(pen)
-            qp.drawLine((i+1)*self.between, height, (i+1)*self.between, height - p[0]/2)
+            qp.drawLine((i)*self.between, height, (i)*self.between, height - p[0]/2)
 
             pen.setColor(QColor(152, 87, 0))
             qp.setPen(pen)
-            qp.drawLine((i + 1) * self.between + self.between/2, height,
-                        (i + 1) *self.between +  self.between/2, height - p[1]/2)
+            qp.drawLine((i) * self.between + self.between/2, height,
+                        (i) *self.between +  self.between/2, height - p[1]/2)
         qp.end()
 
     def set_wav(self, wav, title):

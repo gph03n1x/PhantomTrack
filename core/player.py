@@ -258,7 +258,10 @@ class MusicPlayer(QWidget):
         current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
                      for row in range(self.playlistModel.rowCount()) ]
 
+
         for path in paths:
+            if not path:
+                continue
             for item in listdir(path):
                 if isfile(join(path, item))and item.endswith(".mp3") and (item not in current_songs):
                     self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(path, item))))

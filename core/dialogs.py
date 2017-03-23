@@ -72,7 +72,6 @@ class DownloadManager(QWidget):
             self.libraries.removeRow(index.row())
 
     def set_refresh(self, refresh):
-        #TODO: [BUG] refreshing with playlist without the song
         self.refresh = refresh
 
     def download(self):

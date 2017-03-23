@@ -63,11 +63,12 @@ class PlaylistManager(QWidget):
         completer = QCompleter()
         self.available_playlist = QStringListModel()
         completer.setModel(self.available_playlist)
+        completer.activated.connect(self.load)
         self.playlist_name.setCompleter(completer)
         self.refresh_lists()
 
-        self.load_button = QToolButton(clicked=self.load)
-        self.load_button.setText("Load")
+        #self.load_button = QToolButton(clicked=self.load)
+        #self.load_button.setText("Load")
 
         self.save_button = QToolButton(clicked=self.save)
         self.save_button.setText("Save")
@@ -90,7 +91,7 @@ class PlaylistManager(QWidget):
 
         action_layout = QHBoxLayout()
         action_layout.addWidget(self.playlist_name)
-        action_layout.addWidget(self.load_button)
+        #action_layout.addWidget(self.load_button)
         action_layout.addWidget(self.save_button)
 
         manager_layout = QVBoxLayout()
@@ -164,15 +165,15 @@ class PlaylistManager(QWidget):
                 self.widget.playlist_list.append(self.playlist_name.text())
                 self.widget.playlist_name.addItem(self.playlist_name.text())
 
-    def load(self):
-        if self.playlist_name.text():
-            songs = read_playlist(self.playlist_name.text()).split('\n')
-            if songs:
-                self.playlist.clear()
-                self.playlist_items = 0
-                self.playlist.setRowCount(self.playlist_items)
-                for song in songs:
-                    if song.endswith('.mp3'):
-                        self.playlist.setRowCount(self.playlist_items + 1)
-                        self.playlist.setItem(self.playlist_items, 0, QTableWidgetItem(song))
-                        self.playlist_items += 1
+    def load(self, playlist_name):
+
+        songs = read_playlist(playlist_name).split('\n')
+        if songs:
+            self.playlist.clear()
+            self.playlist_items = 0
+            self.playlist.setRowCount(self.playlist_items)
+            for song in songs:
+                if song.endswith('.mp3'):
+                    self.playlist.setRowCount(self.playlist_items + 1)
+                    self.playlist.setItem(self.playlist_items, 0, QTableWidgetItem(song))
+                    self.playlist_items += 1

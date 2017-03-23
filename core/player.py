@@ -155,12 +155,8 @@ class MusicPlayer(QWidget):
     def waveform(self, status):
         print(status)
         if self.player.state() == QMediaPlayer.PlayingState:
-            try:
-                self.wg.animate()
-            except:
-                pass
+            self.wg.animate()
         else:
-            #pass
             self.wg.stop()
 
     def list_view_menu(self, point):

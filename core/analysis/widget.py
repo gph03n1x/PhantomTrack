@@ -18,9 +18,9 @@ class WaveGraphic(QWidget):
         # TODO: add to config
         # TODO: clean up the mess.
         self.bars = 60
-        self.step = 500
+        self.step = 250
         self.between = 10
-        self.input_data = None
+        self.data_to_animate = None
         self.setFixedHeight((self.geometry().height()-220)/2)
         self.storage = Storage()
         #self.stop = False
@@ -47,9 +47,9 @@ class WaveGraphic(QWidget):
 
         self.storage.cur.execute("select * from song_info where song_hash = ?", (song_hash,))
         results = self.storage.cur.fetchone()
-        self.input_data_2 = results[1]
+        self.data = results[1]
 
-        self.start = 0
+        self.starting_point = 0
         self.set_title(song)
 
     def cache_waves(self, song, data, duration):
@@ -62,7 +62,7 @@ class WaveGraphic(QWidget):
 
     def stop(self):
         self.timer.stop()
-        self.start = 0
+        self.starting_point = 0
         self.hide()
 
     def start(self):
@@ -74,18 +74,25 @@ class WaveGraphic(QWidget):
         self.hide()
 
     def animate(self):
-        self.input_data = self.input_data_2[self.start:self.start+self.bars]
-        if len(self.input_data) == 0:
+        if self.data is None:
+            self.timer.start(self.step)
+            return
+
+        self.data_to_animate = self.data[self.starting_point:self.starting_point + self.bars]
+
+        if len(self.data_to_animate) == 0:
+            self.timer.start(self.step)
             self.hide()
             return
         self.update()
 
-        self.start += self.bars
+        self.starting_point += self.bars
 
         self.timer.start(self.step)
 
     def paintEvent(self, e):
-        if self.input_data is None:
+
+        if self.data_to_animate is None:
             return
 
         height = self.geometry().height()
@@ -100,7 +107,7 @@ class WaveGraphic(QWidget):
         pen.setColor(QColor(0, 0, 0))
         qp.setPen(pen)
         qp.fillRect(QRect(0,0, width, height), Qt.white)
-        for i, p in enumerate(self.input_data):
+        for i, p in enumerate(self.data_to_animate):
             pen.setColor(QColor(0, 69, 88))
             qp.setPen(pen)
             qp.drawLine((i)*self.between, height, (i)*self.between, height - p[0]/2)
@@ -120,11 +127,11 @@ class WaveGraphic(QWidget):
             rate = f.getframerate()
             duration = frames / float(rate)
 
-        data = read(wave_file)[1]
+        wave_data = read(wave_file)[1]
         os.remove(wave_file)
 
-        rate = int(len(data) / (duration * self.bars * (self.step / 1000)))
+        rate = int(len(wave_data) / (duration * self.bars * (self.step / 1000)))
 
-        self.data = data[::rate]
-        self.cache_waves(wave_file, data, duration)
+        self.data = wave_data[::rate]
+        self.cache_waves(wave_file, self.data, duration)
         self.load_waves(file_name)

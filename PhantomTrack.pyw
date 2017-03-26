@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys
+import logging
 # Third party libraries
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette, QKeySequence
@@ -99,6 +100,8 @@ class MainApplication(QMainWindow):
 
 if __name__ == "__main__":
     # TODO: comment the code.
+    logging.basicConfig(filename="error.log", level=logging.INFO)
+    logger = logging.getLogger(__name__)
     options = fetch_options()
 
     app = QApplication(sys.argv)

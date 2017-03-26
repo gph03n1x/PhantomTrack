@@ -99,6 +99,7 @@ class MainApplication(QMainWindow):
 
 if __name__ == "__main__":
     # TODO: comment the code.
+    options = fetch_options()
 
     app = QApplication(sys.argv)
     app.setStyle('Fusion')

@@ -2,6 +2,8 @@
 import os
 import os.path
 import hashlib
+import wave
+import contextlib
 from scipy.io.wavfile import read
 from PyQt5.QtCore import QTimer, QRect, Qt
 from PyQt5.QtGui import QPainter, QColor, QPen
@@ -16,6 +18,7 @@ class WaveGraphic(QWidget):
         # TODO: add to config
         # TODO: clean up the mess.
         self.bars = 60
+        self.step = 500
         self.between = 10
         self.input_data = None
         self.setFixedHeight((self.geometry().height()-220)/2)
@@ -24,23 +27,23 @@ class WaveGraphic(QWidget):
         self.timer = QTimer()
         self.timer.timeout.connect(self.animate)
 
-
     def set_title(self, title):
         self.parent().parent().setWindowTitle("Phantom Track "+title)
 
     def is_song_cached(self, song):
-        song = song.split(".")[0]
-        song_hash = hashlib.sha224(song.encode()).hexdigest() + ".swv"
-        self.storage.cur.execute("select count(*) from song_info where song_hash = ?", (song_hash,))
+        self.storage.cur.execute("select count(*) from song_info where song_hash = ?", (self.get_song_hash(song),))
         return self.storage.cur.fetchone()[0] != 0
 
-    def load_load_waves(self, song):
+    def get_song_hash(self, song):
+        song = song.rsplit(".", 1)[0]
+        return hashlib.sha224(song.encode()).hexdigest()
+
+    def load_waves(self, song):
         if not self.is_song_cached(song):
             print("Attempt to read non-cached song")
             return
 
-        song = song.split(".")[0]
-        song_hash = hashlib.sha224(song.encode()).hexdigest() + ".swv"
+        song_hash = self.get_song_hash(song)
 
         self.storage.cur.execute("select * from song_info where song_hash = ?", (song_hash,))
         results = self.storage.cur.fetchone()
@@ -49,32 +52,37 @@ class WaveGraphic(QWidget):
         self.start = 0
         self.set_title(song)
 
-    def cache_waves(self, song):
+    def cache_waves(self, song, data, duration):
         if not self.is_song_cached(song):
-            song = song.rsplit(".", 1)[0]
-            song_hash = hashlib.sha224(song.encode()).hexdigest() + ".swv"
-            self.storage.cur.execute("insert into song_info (song_hash, wave_form, duration) values (?,?,?)", (song_hash, self.input_data_2, 0))
+            song_hash = self.get_song_hash(song)
+            self.storage.cur.execute("insert into song_info (song_hash, wave_form, duration, bars, step) values (?,?,?,?,?)",
+                                     (song_hash, data, duration, self.bars, self.step))
             self.storage.con.commit()
 
 
     def stop(self):
         self.timer.stop()
+        self.start = 0
+        self.hide()
+
+    def start(self):
+        self.show()
+        self.animate()
+
+    def pause(self):
+        self.timer.stop()
         self.hide()
 
     def animate(self):
-        self.show()
-
-        step = 250
-
-        self.input_data = self.input_data_2[self.start:self.start+step]
+        self.input_data = self.input_data_2[self.start:self.start+self.bars]
         if len(self.input_data) == 0:
             self.hide()
             return
         self.update()
 
-        self.start += step
+        self.start += self.bars
 
-        self.timer.start(step/2)
+        self.timer.start(self.step)
 
     def paintEvent(self, e):
         if self.input_data is None:
@@ -104,11 +112,19 @@ class WaveGraphic(QWidget):
         qp.end()
 
     def set_wav(self, wav, title):
-        #self.setWindowTitle(title)
-        data = 250 / self.bars
-        self.set_title(title)
-        self.input_data_2 = read(wav)[1][::int(data)]
-        os.remove(wav)
+        self.store_wav_info(wav, title)
 
-        self.cache_waves(wav)
-        self.start = 0
+    def store_wav_info(self, wave_file, file_name):
+        with contextlib.closing(wave.open(wave_file, 'r')) as f:
+            frames = f.getnframes()
+            rate = f.getframerate()
+            duration = frames / float(rate)
+
+        data = read(wave_file)[1]
+        os.remove(wave_file)
+
+        rate = int(len(data) / (duration * self.bars * (self.step / 1000)))
+
+        self.data = data[::rate]
+        self.cache_waves(wave_file, data, duration)
+        self.load_waves(file_name)

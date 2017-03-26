@@ -214,7 +214,7 @@ class MusicPlayer(QWidget):
 
         song = self.playlistView.selectedIndexes()[0].data()
         if self.wg.is_song_cached(song):
-            self.wg.load_load_waves(song)
+            self.wg.load_waves(song)
         else:
             wc_ = WaveConverter(song, self.wg.set_wav)
             wc_.convert()

@@ -30,7 +30,8 @@ class Storage:
 
         self.con = sqlite3.connect("song_info.db", detect_types=sqlite3.PARSE_DECLTYPES)
         self.cur = self.con.cursor()
-        self.cur.execute("create table if not exists song_info (song_hash text, wave_form array, duration int)")
+        self.cur.execute("create table if not exists song_info \
+        (song_hash text, wave_form array, duration int, bars int, step int)")
 
 if __name__ == "__main__":
     s = Storage()

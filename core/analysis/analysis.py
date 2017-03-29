@@ -16,18 +16,13 @@ class WaveConverter:
         self.full_path = find_path(filename)
         self.wav_name = filename.replace(".mp3", ".wav")
         self.convert_process = QProcess()
-        self.convert_process.finished.connect(lambda : on_finish(self.wav_name, filename))
-        #on_finish(self.full_path, self.png_name)
-
+        self.convert_process.finished.connect(lambda: on_finish(self.wav_name))
 
     def convert(self):
         """
-        Calls the wave converions command.
+        Calls the wave conversion command.
         """
         if os.path.isfile(self.full_path):
-            command_input = {'ffmpeg': FFMPEG_BIN, 'song': self.full_path, 'wave':self.wav_name}
+            command_input = {'ffmpeg': FFMPEG_BIN, 'song': self.full_path, 'wave': self.wav_name}
             cmd = parse_command(WAVE_CMD, command_input)
             self.convert_process.start(cmd)
-
-
-

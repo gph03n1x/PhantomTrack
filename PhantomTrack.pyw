@@ -13,7 +13,7 @@ from core.playlist.dialog import PlaylistManager
 
 
 class MainApplication(QMainWindow):
-    def __init__(self):
+    def __init__(self, options):
         """
         Initializes the main window with the Music libraries manager
         and the download manager in the menu bar. If there are no music
@@ -21,6 +21,7 @@ class MainApplication(QMainWindow):
         """
         QApplication.__init__(self)
 
+        self.options = options
         self.do_not_refresh = False
 
         menu_bar = self.menuBar()
@@ -37,10 +38,8 @@ class MainApplication(QMainWindow):
         music_menu.addAction(download_action)
         music_menu.addAction(playlist_action)
 
-        options = fetch_options()
-        print(options['paths'])
 
-        if len(options['paths']['music_path']) < 1:
+        if len(self.options['paths']['music_path']) < 1:
             self.do_not_refresh = True
             self.hide()
 
@@ -50,10 +49,7 @@ class MainApplication(QMainWindow):
         calls the Music libraries manager
         :return:
         """
-        options = fetch_options()
-        print(options['paths'])
-
-        if len(options['paths']['music_path']) < 1:
+        if len(self.options['paths']['music_path']) < 1:
             self.call_libraries_manager()
         else:
             self.show()
@@ -123,7 +119,7 @@ if __name__ == "__main__":
 
     app.setPalette(palette)
 
-    main_app = MainApplication()
+    main_app = MainApplication(options)
     main_app.setWindowTitle("Phantom Track")
     main_app.set_up_gui()
     main_app.begin()

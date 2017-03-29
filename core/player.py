@@ -16,16 +16,18 @@ from core.config import fetch_options, similar
 from core.playlist.storage import read_playlist
 from core.recommendations.youtube import youtube_recommendations, getYoutubeURLFromSearch
 
-options = fetch_options()
-FFMPEG_BIN = options['paths']['ffmpeg_bin']
-THUMBNAILS = options['paths']['thumbnails']
-THUMB_WIDTH = options['thumbnail']['width']
-THUMB_HEIGHT = options['thumbnail']['height']
+
 
 
 class MusicPlayer(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
+        self.options = self.parent().options
+        
+        self.ffmpeg = self.options['paths']['ffmpeg_bin']
+        self.thumbnails = self.options['paths']['thumbnails']
+        self.thumb_width = self.options['thumbnail']['width']
+        self.thumb_height = self.options['thumbnail']['height']
 
         self.jumping = False
         self.blocked = False
@@ -109,8 +111,15 @@ class MusicPlayer(QWidget):
 
         # Sound wave widget
 
-        self.wg = WaveGraphic()
-        self.wg.hide()
+        self.wave_graphic = WaveGraphic(self)
+        self.wave_graphic.hide()
+
+        # Testing slider again
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setRange(0, self.player.duration() / 1000)
+        self.slider.sliderMoved.connect(self.seek)
+        self.player.durationChanged.connect(self.durationChanged)
+        self.player.positionChanged.connect(self.positionChanged)
 
         # Shortcuts
         QShortcut(QKeySequence(Qt.CTRL + Qt.Key_F), self, song_search.setFocus)
@@ -131,7 +140,6 @@ class MusicPlayer(QWidget):
         control_layout.addWidget(self.muteButton)
         control_layout.addWidget(self.volumeSlider)
         control_layout.addWidget(self.playbackButton)
-        #control_layout.addWidget(self.waveformButton)
 
         display_layout = QVBoxLayout()
         display_layout.addWidget(song_search)
@@ -140,6 +148,7 @@ class MusicPlayer(QWidget):
 
         music_layout = QVBoxLayout()
         music_layout.addWidget(self.image_label)
+        music_layout.addWidget(self.slider)
         music_layout.addLayout(control_layout)
 
         main_layout = QHBoxLayout()
@@ -148,23 +157,23 @@ class MusicPlayer(QWidget):
 
         main_2_layout = QVBoxLayout()
         main_2_layout.addLayout(main_layout)
-        main_2_layout.addWidget(self.wg)
+        main_2_layout.addWidget(self.wave_graphic)
 
         self.setLayout(main_2_layout)
 
     def waveform(self, status):
         if status == QMediaPlayer.PlayingState:
-            self.wg.start()
+            self.wave_graphic.start()
         elif status == QMediaPlayer.PausedState:
-            self.wg.pause()
+            self.wave_graphic.pause()
         else:
-            self.wg.stop()
+            self.wave_graphic.stop()
 
     def list_view_menu(self, point):
         menu = QMenu("Menu", self)
         recommend_action = QAction('&Recommend Songs', self)
         menu.addAction(recommend_action)
-        #print(self.app)
+
         # TODO: [FEATURE] add rename song
         menu.triggered.connect(lambda: self.parent().call_download_manager(self.get_links()))
 
@@ -176,7 +185,6 @@ class MusicPlayer(QWidget):
         link = getYoutubeURLFromSearch(title)
         if len(link) > 1:
             return youtube_recommendations(link)
-
 
     def move_up(self):
         index = self.playlistView.currentIndex().row()
@@ -214,10 +222,10 @@ class MusicPlayer(QWidget):
         self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
 
         song = self.playlistView.selectedIndexes()[0].data()
-        if self.wg.is_song_cached(song):
-            self.wg.load_waves(song)
+        if self.wave_graphic.is_song_cached(song):
+            self.wave_graphic.load_waves(song)
         else:
-            wc_ = WaveConverter(song, self.wg.set_wav)
+            wc_ = WaveConverter(song, self.wave_graphic.set_wav)
             wc_.convert()
 
         if self.playlistView.currentIndex().data() is None or self.blocked:
@@ -226,7 +234,7 @@ class MusicPlayer(QWidget):
         max_ratio = 0
         img = None
 
-        for item in listdir(THUMBNAILS):
+        for item in listdir(self.thumbnails):
             if item.endswith('.jpg'):
                 ratio = similar(item, self.playlistView.currentIndex().data().replace('.mp3', '.jpg'))
                 if ratio > max_ratio:
@@ -234,10 +242,8 @@ class MusicPlayer(QWidget):
                     img = item
 
         if img:
-            p = QPixmap(THUMBNAILS + img)
-            self.image_label.setPixmap(p.scaled(THUMB_WIDTH, THUMB_HEIGHT, Qt.KeepAspectRatio))
-
-        #self.wg.animate()
+            p = QPixmap(self.thumbnails + img)
+            self.image_label.setPixmap(p.scaled(self.thumb_width, self.thumb_height, Qt.KeepAspectRatio))
 
     def switch_playlist(self, current_text):
         self.playlist.clear()
@@ -257,8 +263,7 @@ class MusicPlayer(QWidget):
         paths = fetch_options()['paths']['music_path'].split(';')
 
         current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
-                     for row in range(self.playlistModel.rowCount()) ]
-
+                         for row in range(self.playlistModel.rowCount())]
 
         for path in paths:
             if not path:
@@ -276,7 +281,6 @@ class MusicPlayer(QWidget):
             if isfile(join(path, item)) and item.endswith(".lst"):
                 self.playlist_list.append(item.split('.')[0])
                 self.playlist_name.addItem(item.split('.')[0])
-
 
     def playback_mode(self):
         # Normal -> Loop -> Random
@@ -335,3 +339,16 @@ class MusicPlayer(QWidget):
                 else QStyle.SP_MediaVolumeMuted
                 )
             )
+
+    def durationChanged(self, duration):
+        duration /= 1000
+        self.slider.setMaximum(duration)
+
+    def positionChanged(self, progress):
+        progress /= 1000
+
+        if not self.slider.isSliderDown():
+            self.slider.setValue(progress)
+
+    def seek(self, seconds):
+        self.player.setPosition(seconds * 1000)

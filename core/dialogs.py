@@ -80,11 +80,12 @@ class DownloadManager(QWidget):
         self.links_to_download.hide()
         download_links = [self.libraries.model().index(path, 0).data() for path in range(self.libraries.rowCount())]
         yt = YoutubeDownloader(download_links, self.download_label, self.download_button, self.download_status, self.done)
-        yt.begin()
         self.links_to_download.clear()
         self.libraries.clear()
         self.items = 0
         self.libraries.setRowCount(self.items)
+        yt.start()
+
 
     def done(self):
         self.download_label.setText("")

@@ -5,6 +5,10 @@ TODO: complete readme
 
 ### Installation
 
+** FFMPEG **
+
+You need ffmpeg to run this application.
+
 First you need to install pyqt and then run
 
 ```bash

@@ -3,8 +3,8 @@ import os
 import re
 import os.path
 
-from PyQt5.QtCore import QProcess
-
+from PyQt5.QtCore import QThread
+import youtube_dl
 from core.config import fetch_options, get_default_path, parse_command
 
 options = fetch_options()
@@ -14,8 +14,9 @@ YOUTUBE_CMD = options['commands']['download']
 THUMBNAILS = options['paths']['thumbnails']
 
 
-class YoutubeDownloader:
+class YoutubeDownloader(QThread):
     def __init__(self, links, label, button, progress, done_method):
+        QThread.__init__(self)
         """
         Initializes class variables and creates a qprocess which is connected with
         the appropriate slots.
@@ -31,12 +32,19 @@ class YoutubeDownloader:
         self.progress = progress
         self.done_method = done_method
 
-        self.process = QProcess()
-        self.process.readyRead.connect(self.update_progress)
-        self.process.started.connect(lambda: self.button.setEnabled(False))
-        self.process.finished.connect(self.download_complete)
-
         self.download_input = {'ffmpeg': FFMPEG_BIN}
+
+        self.ydl_opts = {
+            'writethumbnail': True,
+            'format': 'bestaudio/best',
+            'ffmpeg_location': FFMPEG_BIN,
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'progress_hooks': [self.update_progress],
+        }
 
     def download_complete(self):
         """
@@ -71,17 +79,16 @@ class YoutubeDownloader:
 
         self.done_method()
 
-    def update_progress(self):
+    def update_progress(self, status):
         """
         Reads the percentage of the download progress and updates the progress bar
         :return:
         """
-        data = str(self.process.readAll())
-        percentage = re.search("\d+\.\d+%", data)
+        percentage = re.search("\d+\.\d+%", str(status))
         if percentage:
             self.progress.setValue(int(percentage.group(0).replace("%", "").split(".")[0]))
 
-    def begin(self):
+    def run(self):
         """
         Starts the first download
         :return:
@@ -95,6 +102,9 @@ class YoutubeDownloader:
         """
         link = self.links.pop()
         self.label.setText("Downloading " + link)
-        self.download_input['link'] = link
-        cmd = parse_command(YOUTUBE_CMD, self.download_input)
-        self.process.start(cmd)
+        #self.download_input['link'] = link
+        #cmd = parse_command(YOUTUBE_CMD, self.download_input)
+        #self.process.start(cmd)
+        with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
+            ydl.download([link])
+        self.download_complete()

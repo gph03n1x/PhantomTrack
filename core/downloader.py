@@ -105,6 +105,7 @@ class YoutubeDownloader(QThread):
         #self.download_input['link'] = link
         #cmd = parse_command(YOUTUBE_CMD, self.download_input)
         #self.process.start(cmd)
+
         with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
             ydl.download([link])
         self.download_complete()

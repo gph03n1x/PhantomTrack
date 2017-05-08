@@ -16,8 +16,7 @@ from core.analysis.storage import Storage
 class WaveGraphic(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
-        # TODO: add to config
-        # TODO: clean up the mess.
+
         self.options = self.parent().options
         self.bars = int(self.options['waves']['bars'])
         self.step = int(self.options['waves']['refrash-rate'])
@@ -29,7 +28,6 @@ class WaveGraphic(QWidget):
 
         self.setFixedHeight(int(self.options['waves']['height']))
 
-
         self.storage = Storage()
         self.timer = QTimer()
         self.timer.timeout.connect(self.animate)
@@ -37,15 +35,12 @@ class WaveGraphic(QWidget):
     def stop(self):
         self.timer.stop()
         self.starting_point = 0
-        self.hide()
 
     def start(self):
-        self.show()
         self.animate()
 
     def pause(self):
         self.timer.stop()
-        #self.hide()
 
     def set_title(self, title):
         self.parent().parent().setWindowTitle("Phantom Track " + title)
@@ -92,7 +87,7 @@ class WaveGraphic(QWidget):
 
         if len(self.data_to_animate) == 0:
             self.timer.start(self.step)
-            self.hide()
+            #self.hide()
             return
 
         self.update()

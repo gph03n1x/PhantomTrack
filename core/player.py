@@ -112,7 +112,7 @@ class MusicPlayer(QWidget):
         # Sound wave widget
 
         self.wave_graphic = WaveGraphic(self)
-        self.wave_graphic.hide()
+        #self.wave_graphic.hide()
 
         # Testing slider again
         self.slider = QSlider(Qt.Horizontal)
@@ -175,7 +175,13 @@ class MusicPlayer(QWidget):
         menu.addAction(recommend_action)
 
         # TODO: [FEATURE] add rename song
-        menu.triggered.connect(lambda: self.parent().call_download_manager(self.get_links()))
+        recommend_action.triggered.connect(lambda: self.parent().call_download_manager(self.get_links()))
+
+        rename_action = QAction('&Rename', self)
+        menu.addAction(rename_action)
+
+        # TODO: [FEATURE] add rename song
+        rename_action.triggered.connect(lambda: print("rename"))
 
         # Show the context menu.
         menu.exec_(self.playlistView.mapToGlobal(point))
@@ -326,7 +332,6 @@ class MusicPlayer(QWidget):
                 self.playlistModel.index(self.playlist.currentIndex(), 0))
 
     def previous_song(self):
-        # TODO: [BUG] previous at first should go to last
         self.playlist.previous()
         self.playlistView.setCurrentIndex(
                 self.playlistModel.index(self.playlist.currentIndex(), 0))

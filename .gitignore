@@ -15,6 +15,9 @@ Testing/*
 # db files
 *.db*
 
+# bin folder
+bin/*
+
 # PhantomTrack configure.
 pt.cfg
 

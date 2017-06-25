@@ -88,11 +88,13 @@ class DownloadManager(QWidget):
 
 
     def done(self):
+        print("ok")
         self.download_label.setText("")
         self.download_button.setEnabled(True)
         self.download_status.hide()
         self.links_to_download.show()
         self.refresh()
+        print("done")
 
 
 class LibrariesManager(QWidget):

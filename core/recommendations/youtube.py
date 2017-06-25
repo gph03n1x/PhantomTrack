@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 
 
 def youtube_recommendations(url):
-
+    # do it in a thread friendly way.
     r = requests.get(url)
     soup = BeautifulSoup(r.content, 'html.parser')
     videos = soup.find_all('a', {"class":'content-link'})

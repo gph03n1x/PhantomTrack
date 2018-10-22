@@ -2,7 +2,7 @@
 import os
 import os.path
 from PyQt5.QtCore import QProcess
-from core.config import fetch_options, parse_command, find_path
+from coreconfig import fetch_options, parse_command, find_path
 
 
 options = fetch_options()

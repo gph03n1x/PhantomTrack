@@ -6,6 +6,9 @@ __pycache__/
 # Pycharm idea folder
 .idea/*
 
+# Virtual Environment
+venv/
+
 # Library Folder
 data/thumbnails/*.jpg
 
@@ -23,6 +26,7 @@ pt.cfg
 
 # mp3 files
 *.mp3
+*.webm
 
 # lst files
 *.lst

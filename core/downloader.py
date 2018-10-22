@@ -5,7 +5,7 @@ import os.path
 
 from PyQt5.QtCore import QThread
 import youtube_dl
-from core.config import fetch_options, get_default_path, parse_command
+from core.settings import fetch_options, get_default_path, parse_command
 
 options = fetch_options()
 FFMPEG_BIN = options['paths']['ffmpeg_bin']

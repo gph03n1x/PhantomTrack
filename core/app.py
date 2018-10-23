@@ -7,13 +7,14 @@ from PyQt5.QtGui import QColor, QPalette, QKeySequence
 from PyQt5.QtWidgets import QApplication, QMainWindow, QAction
 # Core libraries
 from core.interface.dialogs import LibrariesManager, DownloadManager
-from core.settings import fetch_options
+from core import settings
 from core.interface.player import MusicPlayer
 from core.interface.playlist import PlaylistManager
-
+from core.models import MusicPaths
+from core.database import create_db_session
 
 class MainApplication(QMainWindow):
-    def __init__(self, options):
+    def __init__(self):
         """
         Initializes the main window with the Music libraries manager
         and the download manager in the menu bar. If there are no music
@@ -21,8 +22,8 @@ class MainApplication(QMainWindow):
         """
         QApplication.__init__(self)
 
-        self.options = options
         self.do_not_refresh = False
+        self.session = create_db_session(settings.DB_URL)
 
         menu_bar = self.menuBar()
         music_menu = menu_bar.addMenu('&Music')
@@ -38,8 +39,7 @@ class MainApplication(QMainWindow):
         music_menu.addAction(download_action)
         music_menu.addAction(playlist_action)
 
-
-        if len(self.options['paths']['music_path']) < 1:
+        if self.session.query(MusicPaths).count() < 1:
             self.do_not_refresh = True
             self.hide()
 
@@ -49,7 +49,7 @@ class MainApplication(QMainWindow):
         calls the Music libraries manager
         :return:
         """
-        if len(self.options['paths']['music_path']) < 1:
+        if self.session.query(MusicPaths).count()  < 1:
             self.call_libraries_manager()
         else:
             self.show()
@@ -98,7 +98,6 @@ if __name__ == "__main__":
     # TODO: comment the code.
     logging.basicConfig(filename="error.log", level=logging.INFO)
     logger = logging.getLogger(__name__)
-    options = fetch_options()
 
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
@@ -119,7 +118,7 @@ if __name__ == "__main__":
 
     app.setPalette(palette)
 
-    main_app = MainApplication(options)
+    main_app = MainApplication()
     main_app.setWindowTitle("Phantom Track")
     main_app.set_up_gui()
     main_app.begin()

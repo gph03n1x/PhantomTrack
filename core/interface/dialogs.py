@@ -4,9 +4,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QHBoxLayout, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget,
     QLabel, QFileDialog, QProgressBar, QLineEdit, QSizePolicy)
 
-from core.settings import fetch_options, update_music_paths
+from core import settings
+from core.models import MusicPaths
 from core.downloader import YoutubeDownloader
-
 
 class DownloadManager(QWidget):
     def __init__(self, parent=None):
@@ -122,11 +122,6 @@ class LibrariesManager(QWidget):
         self.libraries.setColumnCount(1)
         self.libraries.horizontalHeader().setStretchLastSection(True)
         self.libraries.horizontalHeader().hide()
-        paths = fetch_options()['paths']['music_path'].split(';')
-        for path in paths:
-            if len(path) > 1:
-                self.add_to_table(path)
-
 
         controls_l = QHBoxLayout()
         controls_l.setAlignment(Qt.AlignLeft)
@@ -143,6 +138,11 @@ class LibrariesManager(QWidget):
         self.app = app
         self.widget = widget
 
+        paths = self.app.session.query(MusicPaths).all()
+        for path in paths:
+            if len(path) > 1:
+                self.add_to_table(path.path)
+
     def add_to_table(self, path):
         self.libraries.setRowCount(self.items + 1)
         self.libraries.setItem(self.items, 0, QTableWidgetItem(path))
@@ -151,7 +151,6 @@ class LibrariesManager(QWidget):
     def add_library(self):
         self.folder_dialog = QFileDialog.getExistingDirectory(self, 'Select Folder')
         self.libraries.setRowCount(self.items + 1)
-        print(self.folder_dialog)
         self.libraries.setItem(self.items, 0, QTableWidgetItem(self.folder_dialog))
         self.items += 1
 
@@ -160,12 +159,21 @@ class LibrariesManager(QWidget):
         for index in sorted(self.libraries.selectedIndexes())[::-1]:
             self.libraries.removeRow(index.row())
 
-
     def done_library(self):
-        paths = [self.libraries.model().index(path, 0).data() for path in range(self.libraries.rowCount())]
-        update_music_paths(paths)
+
+        for path in range(self.libraries.rowCount()):
+            music_path = MusicPaths(path=self.libraries.model().index(path, 0).data())
+            try:
+                self.app.session.insert(music_path)
+                self.app.session.commit()
+            except Exception as exc:
+                print(exc)
+                self.app.session.rollback()
+
         self.widget.refresh()
         self.app.show()
         self.widget.change_thumbnail()
-
         self.close()
+
+    def set_primary(self):
+        pass

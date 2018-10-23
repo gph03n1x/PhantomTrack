@@ -7,8 +7,8 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (QHBoxLayout, QStyle, QTableWidget, QTableWidgetItem, QToolButton,
                              QVBoxLayout, QWidget, QCompleter, QLabel, QShortcut, QLineEdit)
 
-from core.settings import fetch_options
-from core.playlist.storage import create_playlist, read_playlist
+from core.models import MusicPaths, Playlist
+
 
 class PlaylistManager(QWidget):
     def __init__(self, parent=None):
@@ -23,9 +23,8 @@ class PlaylistManager(QWidget):
         self.libraries.setColumnCount(1)
         self.libraries.horizontalHeader().setStretchLastSection(True)
         self.libraries.horizontalHeader().hide()
-
-
-        paths = fetch_options()['paths']['music_path'].split(';')
+        self.session = parent.parent().session
+        paths = self.session.query(MusicPaths).all()
         self.music_files = {}
 
         for path in paths:
@@ -131,10 +130,9 @@ class PlaylistManager(QWidget):
         self.widget = widget
 
     def refresh_lists(self):
-        path = fetch_options()['paths']['playlist']
-
-        self.available_playlist.setStringList([ item.split('.')[0] for item in listdir(path)
-                                                if isfile(join(path, item)) and item.endswith(".lst")])
+        self.available_playlist.setStringList([
+            playlist.name for playlist in self.session.query(Playlist).all()
+        ])
 
     def add_to_table(self):
         for index in sorted(self.libraries.selectedIndexes())[::-1]:

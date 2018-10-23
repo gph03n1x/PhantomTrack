@@ -5,15 +5,18 @@ from os.path import isfile, join
 from PyQt5.QtGui import QPixmap, QKeySequence
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer, QMediaPlaylist
-from PyQt5.QtWidgets import (QHBoxLayout, QListView, QSlider, QStyle, QLineEdit, QShortcut, QComboBox,
-                             QToolButton, QVBoxLayout, QWidget, QLabel, QMenu, QAction)
+from PyQt5.QtWidgets import (
+    QHBoxLayout, QListView, QSlider, QStyle, QLineEdit, QShortcut, QComboBox,
+    QToolButton, QVBoxLayout, QWidget, QLabel, QMenu, QAction
+)
 
 # Core libraries
 from core.analysis.analysis import WaveConverter
 from core.interface.wave import WaveGraphic
 from core.playlist.model import PlaylistModel
-from core.settings import fetch_options, similar, find_path
-from core.playlist.storage import read_playlist
+from core.utils import similar
+from core.settings import FFMPEG, THUMBNAILS_DIRECTORY, THUMBNAILS_HEIGHT, THUMBNAILS_WIDTH
+from core.models import Playlist, MusicPaths, Song
 from core.recommendations.youtube import youtube_recommendations, getYoutubeURLFromSearch
 
 
@@ -21,12 +24,10 @@ from core.recommendations.youtube import youtube_recommendations, getYoutubeURLF
 class MusicPlayer(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
-        self.options = self.parent().options
-        
-        self.ffmpeg = self.options['paths']['ffmpeg_bin']
-        self.thumbnails = self.options['paths']['thumbnails']
-        self.thumb_width = self.options['thumbnail']['width']
-        self.thumb_height = self.options['thumbnail']['height']
+        self.ffmpeg = FFMPEG
+        self.thumbnails = THUMBNAILS_DIRECTORY
+        self.thumb_width = THUMBNAILS_WIDTH
+        self.thumb_height = THUMBNAILS_HEIGHT
 
         self.jumping = False
         self.blocked = False
@@ -255,17 +256,17 @@ class MusicPlayer(QWidget):
         if current_text == "No Playlist":
             self.refresh()
         else:
-            if read_playlist(current_text):
-                songs = read_playlist(current_text).split('\n')
+            songs = self.parent().session.query(Playlist, Song).filter(name=current_text).join(Song)
+            if songs:
                 for song in songs:
-                    self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(find_path(song))))
+                    self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(song.location)))
 
     def refresh(self):
         # Change it so it will go to same song.
         if self.playlist_name.currentText() != "No Playlist":
             return
 
-        paths = fetch_options()['paths']['music_path'].split(';')
+        paths = self.parent().session.query(MusicPaths).all()
 
         current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
                          for row in range(self.playlistModel.rowCount())]
@@ -278,14 +279,13 @@ class MusicPlayer(QWidget):
                     self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(path, item))))
 
     def refresh_lists(self):
-        path = fetch_options()['paths']['playlist']
         self.playlist_name.clear()
-        self.playlist_list = ["No Playlist"]
-        self.playlist_name.addItem("No Playlist")
-        for item in listdir(path):
-            if isfile(join(path, item)) and item.endswith(".lst"):
-                self.playlist_list.append(item.split('.')[0])
-                self.playlist_name.addItem(item.split('.')[0])
+        self.playlist_list = [
+            play_list.name for play_list in self.parent().session.query(MusicPaths).all()
+        ]
+        self.playlist_list += ["No Playlist"]
+        for item in self.playlist_list:
+            self.playlist_name.addItem(item)
 
     def playback_mode(self):
         # Normal -> Loop -> Random

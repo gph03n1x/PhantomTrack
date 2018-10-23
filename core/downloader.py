@@ -5,17 +5,12 @@ import os.path
 
 from PyQt5.QtCore import QThread
 import youtube_dl
-from core.settings import fetch_options, get_default_path, parse_command
-
-options = fetch_options()
-FFMPEG_BIN = options['paths']['ffmpeg_bin']
-MUSIC_PATH = get_default_path()
-YOUTUBE_CMD = options['commands']['download']
-THUMBNAILS = options['paths']['thumbnails']
+from core.settings import FFMPEG, DOWNLOAD_COMMAND, THUMBNAILS_DIRECTORY
+from core.models import MusicPaths
 
 
 class YoutubeDownloader(QThread):
-    def __init__(self, links, label, button, progress, done_method):
+    def __init__(self, links, label, button, progress, done_method, session):
         QThread.__init__(self)
         """
         Initializes class variables and creates a qprocess which is connected with
@@ -31,13 +26,14 @@ class YoutubeDownloader(QThread):
         self.button = button
         self.progress = progress
         self.done_method = done_method
+        self.session = session
 
-        self.download_input = {'ffmpeg': FFMPEG_BIN}
+        self.download_input = {'ffmpeg': FFMPEG}
 
         self.ydl_opts = {
             'writethumbnail': True,
             'format': 'bestaudio/best',
-            'ffmpeg_location': FFMPEG_BIN,
+            'ffmpeg_location': FFMPEG,
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -64,7 +60,7 @@ class YoutubeDownloader(QThread):
         :return:
         """
         self.label.setText("Moving to music folder...")
-        default_path = fetch_options()['paths']['music_path'].split(';')[0] + "/"
+        default_path = self.session.query(MusicPaths).filter(MusicPaths.is_primary==True)
         for item in os.listdir('.'):
             if os.path.isfile(item) and item.endswith(".mp3"):
                 try:
@@ -73,7 +69,7 @@ class YoutubeDownloader(QThread):
                     print(exc)
             if os.path.isfile(item) and item.endswith(".jpg"):
                 try:
-                    os.rename(item, THUMBNAILS + item)
+                    os.rename(item, THUMBNAILS_DIRECTORY + item)
                 except Exception as exc:
                     print(exc)
 
@@ -102,9 +98,6 @@ class YoutubeDownloader(QThread):
         """
         link = self.links.pop()
         self.label.setText("Downloading " + link)
-        #self.download_input['link'] = link
-        #cmd = parse_command(YOUTUBE_CMD, self.download_input)
-        #self.process.start(cmd)
 
         with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
             ydl.download([link])

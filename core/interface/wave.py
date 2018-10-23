@@ -10,25 +10,25 @@ from PyQt5.QtCore import QTimer, QRect, Qt
 from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtWidgets import QWidget
 
-from core.analysis.storage import Storage
+from core.settings import (
+    WAVE_WIDGET_BARS, WAVE_WIDGET_REFRESH_RATE, WAVE_WIDGET_BETWEEN, WAVE_WIDGET_HEIGHT
+)
 
 
 class WaveGraphic(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
 
-        self.options = self.parent().options
-        self.bars = int(self.options['waves']['bars'])
-        self.step = int(self.options['waves']['refrash-rate'])
-        self.between = int(self.options['waves']['between'])
+        self.bars = WAVE_WIDGET_BARS
+        self.step = WAVE_WIDGET_REFRESH_RATE
+        self.between = WAVE_WIDGET_BETWEEN
 
         self.starting_point = 0
         self.data = None
         self.data_to_animate = None
 
-        self.setFixedHeight(int(self.options['waves']['height']))
+        self.setFixedHeight(WAVE_WIDGET_HEIGHT)
 
-        self.storage = Storage()
         self.timer = QTimer()
         self.timer.timeout.connect(self.animate)
 

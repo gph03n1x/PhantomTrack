@@ -20,13 +20,12 @@ class Playlist(Base):
 class Song(Base):
     __tablename__ = "songs"
     id = Column(Integer, primary_key=True)
-    song_hash = Column(String)
+    song_hash = Column(String, default="")
     name = Column(String)
-    location = Column(String)
-    waves = Column(String)
-    duration = Column(Integer)
-    bars = Column(Integer)
-    step = Column(Integer)
+    waves = Column(String, default="")
+    duration = Column(Integer, default=0)
+    bars = Column(Integer, default=0)
+    step = Column(Integer, default=0)
     playlists = relationship("Playlist", secondary=association_table, back_populates="songs")
 
 

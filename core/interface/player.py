@@ -227,12 +227,16 @@ class MusicPlayer(QWidget):
 
         self.playlistView.setCurrentIndex(self.playlistModel.index(position, 0))
 
-        song = self.playlistView.selectedIndexes()[0].data()
-        if self.wave_graphic.is_song_cached(song):
-            self.wave_graphic.load_waves(song)
-        else:
-            wc_ = WaveConverter(song, self.wave_graphic.set_wav)
-            wc_.convert()
+        try:
+            song = self.playlistView.selectedIndexes()[0].data()
+        except IndexError:
+            return
+        # Disabled wave
+        # if self.wave_graphic.is_song_cached(song):
+        #     self.wave_graphic.load_waves(song)
+        # else:
+        #     wc_ = WaveConverter(song, self.wave_graphic.set_wav)
+        #     wc_.convert()
 
         if self.playlistView.currentIndex().data() is None or self.blocked:
             return
@@ -266,22 +270,28 @@ class MusicPlayer(QWidget):
         if self.playlist_name.currentText() != "No Playlist":
             return
 
-        paths = self.parent().session.query(MusicPaths).all()
+        paths = [path.path for path in self.parent().session.query(MusicPaths).all()]
 
         current_songs = [self.playlistModel.data(self.playlistModel.index(row, 0))
                          for row in range(self.playlistModel.rowCount())]
 
         for path in paths:
+            # shouldn't add here to the db
             if not path:
                 continue
             for item in listdir(path):
+                # add to music sql
+
                 if isfile(join(path, item))and item.endswith(".mp3") and (item not in current_songs):
+                    #song = Song(name=item, location=join(path, item))
+                    #self.parent().session.add(song)
+                    #self.parent().session.commit()
                     self.playlist.addMedia(QMediaContent(QUrl.fromLocalFile(join(path, item))))
 
     def refresh_lists(self):
         self.playlist_name.clear()
         self.playlist_list = [
-            play_list.name for play_list in self.parent().session.query(MusicPaths).all()
+            play_list.name for play_list in self.parent().session.query(Playlist).all()
         ]
         self.playlist_list += ["No Playlist"]
         for item in self.playlist_list:

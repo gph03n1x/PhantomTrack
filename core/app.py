@@ -96,7 +96,7 @@ class MainApplication(QMainWindow):
 
 if __name__ == "__main__":
     # TODO: comment the code.
-    logging.basicConfig(filename="error.log", level=logging.INFO)
+    logging.basicConfig(filename="error.log", level=logging.DEBUG)
     logger = logging.getLogger(__name__)
 
     app = QApplication(sys.argv)

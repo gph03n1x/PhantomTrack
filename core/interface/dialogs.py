@@ -109,7 +109,6 @@ class LibrariesManager(QWidget):
         #self.setWindowModality(Qt.WA_WindowModified)
         self.libraries = QTableWidget()
 
-
         add_paths = QToolButton(clicked=self.add_library)
         add_paths.setText("Add")
         remove_paths = QToolButton(clicked=self.remove_library)
@@ -140,7 +139,7 @@ class LibrariesManager(QWidget):
 
         paths = self.app.session.query(MusicPaths).all()
         for path in paths:
-            if len(path) > 1:
+            if len(path.path) > 1:
                 self.add_to_table(path.path)
 
     def add_to_table(self, path):
@@ -153,27 +152,31 @@ class LibrariesManager(QWidget):
         self.libraries.setRowCount(self.items + 1)
         self.libraries.setItem(self.items, 0, QTableWidgetItem(self.folder_dialog))
         self.items += 1
+        music_path = MusicPaths(path=self.folder_dialog)
+        try:
+            self.app.session.add(music_path)
+            self.app.session.commit()
+        except Exception as exc:
+            print(exc)
+            self.app.session.rollback()
 
     def remove_library(self):
         self.items -= len(self.libraries.selectedIndexes())
         for index in sorted(self.libraries.selectedIndexes())[::-1]:
+            # delete item from sqlite
+            s_path = self.libraries.item(index.row(), index.column()).text()
+            m_path = self.app.session.query(MusicPaths).filter(MusicPaths.path == s_path).first()
+            self.app.session.delete(m_path)
+            self.app.session.commit()
+            # remove it from the widget
             self.libraries.removeRow(index.row())
 
     def done_library(self):
-
-        for path in range(self.libraries.rowCount()):
-            music_path = MusicPaths(path=self.libraries.model().index(path, 0).data())
-            try:
-                self.app.session.insert(music_path)
-                self.app.session.commit()
-            except Exception as exc:
-                print(exc)
-                self.app.session.rollback()
-
         self.widget.refresh()
         self.app.show()
-        self.widget.change_thumbnail()
+        # self.widget.change_thumbnail()
         self.close()
 
     def set_primary(self):
         pass
+

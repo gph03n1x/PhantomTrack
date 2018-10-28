@@ -23,8 +23,7 @@ class PlaylistManager(QWidget):
         self.libraries.setColumnCount(1)
         self.libraries.horizontalHeader().setStretchLastSection(True)
         self.libraries.horizontalHeader().hide()
-        self.session = parent.parent().session
-        paths = self.session.query(MusicPaths).all()
+
         self.music_files = {}
 
         for path in paths:
@@ -64,7 +63,6 @@ class PlaylistManager(QWidget):
         completer.setModel(self.available_playlist)
         completer.activated.connect(self.load)
         self.playlist_name.setCompleter(completer)
-        self.refresh_lists()
 
         #self.load_button = QToolButton(clicked=self.load)
         #self.load_button.setText("Load")
@@ -128,10 +126,12 @@ class PlaylistManager(QWidget):
     def set_app_associations(self, app, widget):
         self.app = app
         self.widget = widget
+        paths = self.app.session.query(MusicPaths).all()
+        self.refresh_lists()
 
     def refresh_lists(self):
         self.available_playlist.setStringList([
-            playlist.name for playlist in self.session.query(Playlist).all()
+            playlist.name for playlist in self.app.session.query(Playlist).all()
         ])
 
     def add_to_table(self):
